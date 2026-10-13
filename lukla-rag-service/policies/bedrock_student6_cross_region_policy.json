@@ -1,0 +1,44 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "BedrockCrossRegionInvokeModel",
+      "Effect": "Allow",
+      "Action": [
+        "bedrock:InvokeModel",
+        "bedrock:InvokeModelWithResponseStream"
+      ],
+      "Resource": [
+        "arn:aws:bedrock:us-east-1::foundation-model/amazon.titan-embed-text-v2:0",
+        "arn:aws:bedrock:us-east-1::foundation-model/amazon.titan-embed-text-v1",
+        "arn:aws:bedrock:ap-southeast-1::foundation-model/amazon.nova-lite-v1:0",
+        "arn:aws:bedrock:ap-southeast-1::foundation-model/amazon.nova-micro-v1:0",
+        "arn:aws:bedrock:ap-southeast-1:*:inference-profile/apac.amazon.nova-lite-v1:0",
+        "arn:aws:bedrock:ap-southeast-1:*:inference-profile/apac.amazon.nova-micro-v1:0"
+      ]
+    },
+    {
+      "Sid": "BedrockModelDiscoveryAndMetadata",
+      "Effect": "Allow",
+      "Action": [
+        "bedrock:ListFoundationModels",
+        "bedrock:GetFoundationModel",
+        "bedrock:ListInferenceProfiles",
+        "bedrock:GetInferenceProfile"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "S3BucketKnowledgeBaseRead",
+      "Effect": "Allow",
+      "Action": [
+        "s3:GetObject",
+        "s3:ListBucket"
+      ],
+      "Resource": [
+        "arn:aws:s3:::*",
+        "arn:aws:s3:::*/*"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,51 @@
+@import url('https://fonts.googleapis.com/css2?family=Archivo:wght@300;400;500;600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg-kabut: #E6ECEE;
+  --bg-lembar: #F8FAFA;
+  --color-indigo: #26325B;
+  --color-tinta: #151A24;
+  --color-kapur: #E8E36B;
+  --color-garis: #C9D2D7;
+}
+
+body {
+  background-color: var(--bg-kabut);
+  color: var(--color-tinta);
+  font-family: 'Archivo', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-feature-settings: "tnum" 1, "cv05" 1;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Tabular nums by default for numeric and table rows */
+table, .tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Custom hard button press simulation */
+.btn-industrial {
+  transition: transform 120ms ease, box-shadow 120ms ease;
+}
+.btn-industrial:active {
+  transform: translateY(2px);
+  box-shadow: 0 0 0 transparent !important;
+}
+
+/* Stitch animation */
+@keyframes stitch-draw {
+  from {
+    stroke-dashoffset: 100;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.stitch-active {
+  stroke-dasharray: 6 4;
+  animation: stitch-draw 0.8s linear infinite;
+}
