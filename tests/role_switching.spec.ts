@@ -13,7 +13,7 @@ test.describe("Role-Based Access Control (RBAC) & View Switching", () => {
     await expect(page.locator("main h1")).toContainText("Terminal Inspeksi QC");
 
     // Verify persona banner shows Teh Reni
-    await expect(page.getByText("Teh Reni (QC Inspector)")).toBeVisible();
+    await expect(page.locator("[data-testid='active-persona-banner']").getByText("Teh Reni (QC Inspector)")).toBeVisible();
   });
 
   test("Selecting WAREHOUSE automatically navigates to /warehouse", async ({ page }) => {
@@ -24,7 +24,7 @@ test.describe("Role-Based Access Control (RBAC) & View Switching", () => {
 
     await expect(page).toHaveURL(/\/warehouse/);
     await expect(page.locator("main h1")).toContainText("Gudang Multi-Tenant");
-    await expect(page.getByText("Kang Asep (Kepala Gudang)")).toBeVisible();
+    await expect(page.locator("[data-testid='active-persona-banner']").getByText("Kang Asep (Kepala Gudang)")).toBeVisible();
   });
 
   test("Selecting B2B_CLIENT isolates view to /b2b-portal", async ({ page }) => {
@@ -34,7 +34,7 @@ test.describe("Role-Based Access Control (RBAC) & View Switching", () => {
     await roleSelect.selectOption("B2B_CLIENT");
 
     await expect(page).toHaveURL(/\/b2b-portal/);
-    await expect(page.getByText("Pak Hendra (Klien Maklon A)")).toBeVisible();
+    await expect(page.locator("[data-testid='active-persona-banner']").getByText("Pak Hendra (Klien Maklon A)")).toBeVisible();
     await expect(page.getByText("Multi-Tenant RLS Terkunci")).toBeVisible();
   });
 
@@ -45,7 +45,7 @@ test.describe("Role-Based Access Control (RBAC) & View Switching", () => {
     await roleSelect.selectOption("TAILOR_OPERATOR");
 
     await expect(page).toHaveURL(/\/production\/terminal/);
-    await expect(page.getByText("Siti Rahma (Penjahit #01)")).toBeVisible();
+    await expect(page.locator("[data-testid='active-persona-banner']").getByText("Siti Rahma (Penjahit #01)")).toBeVisible();
     await expect(page.getByText("Kirim Laporan ke Mandor (Pending)")).toBeVisible();
   });
 });

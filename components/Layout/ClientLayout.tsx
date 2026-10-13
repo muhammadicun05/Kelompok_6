@@ -35,7 +35,10 @@ function InnerLayout({ children }: { children: React.ReactNode }) {
       />
 
       {/* Active Persona Banner Bar */}
-      <div className="bg-white border-b border-garis px-4 py-1.5 flex items-center justify-between text-xs">
+      <div
+        data-testid="active-persona-banner"
+        className="bg-white border-b border-garis px-4 py-1.5 flex items-center justify-between text-xs"
+      >
         <div className="flex items-center gap-2">
           <span
             className="w-2.5 h-2.5 rounded-full"
