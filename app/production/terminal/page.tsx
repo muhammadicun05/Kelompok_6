@@ -15,6 +15,7 @@ import {
 import { supabase } from "@/lib/supabase";
 import { StitchBorder } from "@/components/Design/StitchBorder";
 import { ClientTag } from "@/components/Design/ThreadEdge";
+import { useRole } from "@/components/Layout/RoleContext";
 
 const TIME_SLOTS = [
   "08:00-08:30",
@@ -32,11 +33,20 @@ const TIME_SLOTS = [
 ];
 
 export default function ProductionTerminalPage() {
+  const { currentRole } = useRole();
   const [selectedMachine, setSelectedMachine] = useState<number>(1);
   const [activeSlot, setActiveSlot] = useState<string>("09:00-09:30");
   const [typedQty, setTypedQty] = useState<string>("20");
   const [activeComponent, setActiveComponent] = useState<string>("Badan Depan & Kantong Kanguru");
   const [activeRole, setActiveRole] = useState<"MANDOR" | "TAILOR_OPERATOR">("MANDOR");
+
+  useEffect(() => {
+    if (currentRole === "TAILOR_OPERATOR") {
+      setActiveRole("TAILOR_OPERATOR");
+    } else {
+      setActiveRole("MANDOR");
+    }
+  }, [currentRole]);
   const [orders, setOrders] = useState<any[]>([]);
   const [selectedOrderId, setSelectedOrderId] = useState<string>("");
   const [todayLogs, setTodayLogs] = useState<any[]>([]);

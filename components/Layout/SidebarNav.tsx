@@ -13,12 +13,13 @@ import {
   Building2 
 } from "lucide-react";
 import { Role } from "@/lib/types";
+import { ROLE_ALLOWED_ROUTES } from "./RoleContext";
 
 interface SidebarNavProps {
   currentRole: Role;
 }
 
-const NAV_ITEMS = [
+const ALL_NAV_ITEMS = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/samples", label: "Sampel", icon: Timer },
   { href: "/warehouse", label: "Gudang", icon: Package },
@@ -31,11 +32,15 @@ const NAV_ITEMS = [
 export const SidebarNav: React.FC<SidebarNavProps> = ({ currentRole }) => {
   const pathname = usePathname();
 
+  // Filter accessible routes based on currentRole RBAC
+  const allowed = ROLE_ALLOWED_ROUTES[currentRole] || ROLE_ALLOWED_ROUTES.OWNER;
+  const filteredNavItems = ALL_NAV_ITEMS.filter((item) => allowed.includes(item.href));
+
   return (
     <>
       {/* Desktop 72px Industrial Nav (Section 9.1) */}
       <aside className="hidden md:flex flex-col items-center w-[76px] bg-white border-r border-garis py-4 gap-2 flex-shrink-0 min-h-[calc(100vh-3.5rem)]">
-        {NAV_ITEMS.map((item) => {
+        {filteredNavItems.map((item) => {
           const Icon = item.icon;
           const isActive = pathname === item.href || (item.href !== "/dashboard" && pathname.startsWith(item.href));
           return (
@@ -59,7 +64,7 @@ export const SidebarNav: React.FC<SidebarNavProps> = ({ currentRole }) => {
 
       {/* Mobile Sticky Bottom Bar (Section 9.2) */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-white border-t border-garis z-30 flex items-center justify-around px-2 shadow-lg">
-        {NAV_ITEMS.map((item) => {
+        {filteredNavItems.map((item) => {
           const Icon = item.icon;
           const isActive = pathname === item.href || (item.href !== "/dashboard" && pathname.startsWith(item.href));
           return (
