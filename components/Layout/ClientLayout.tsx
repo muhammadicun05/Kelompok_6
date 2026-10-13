@@ -5,8 +5,9 @@ import { Role } from "@/lib/types";
 import { AppHeader } from "./AppHeader";
 import { SidebarNav } from "./SidebarNav";
 import { AiAssistantDrawer } from "../AiAssistantDrawer";
-import { RoleProvider, useRole } from "./RoleContext";
-import { UserCheck, ShieldCheck } from "lucide-react";
+import { usePathname } from "next/navigation";
+import { UserCheck, ShieldCheck, ShieldAlert, ArrowRight } from "lucide-react";
+import { RoleProvider, useRole, ROLE_ALLOWED_ROUTES, ROLE_DEFAULT_ROUTES } from "./RoleContext";
 
 const ROLE_INFO: Record<Role, { name: string; desc: string; color: string }> = {
   OWNER: { name: "Pak Dedi (Owner)", desc: "Akses Penuh Seluruh Lini & Kebijakan", color: "#26325B" },
@@ -22,7 +23,13 @@ const ROLE_INFO: Record<Role, { name: string; desc: string; color: string }> = {
 function InnerLayout({ children }: { children: React.ReactNode }) {
   const { currentRole, setRole, isMobileSimulated, toggleMobileSim } = useRole();
   const [isAiOpen, setIsAiOpen] = useState(false);
+  const pathname = usePathname();
   const info = ROLE_INFO[currentRole] || ROLE_INFO.OWNER;
+
+  const allowedRoutes = ROLE_ALLOWED_ROUTES[currentRole] || ROLE_ALLOWED_ROUTES.OWNER;
+  const isRouteAllowed =
+    allowedRoutes.some((route) => pathname === route || (route !== "/dashboard" && pathname.startsWith(route))) ||
+    pathname === "/";
 
   return (
     <div className="min-h-screen flex flex-col bg-kabut">
@@ -67,7 +74,26 @@ function InnerLayout({ children }: { children: React.ReactNode }) {
 
         {/* Content area: if simulated mobile is on, render in a 390x844 smartphone bezel frame */}
         <main className="flex-1 overflow-y-auto p-3 sm:p-5 md:p-6 pb-20 md:pb-6 flex justify-center">
-          {isMobileSimulated ? (
+          {!isRouteAllowed ? (
+            <div className="bg-white border-2 border-status-cacat rounded-work p-8 max-w-lg mx-auto text-center shadow-hard my-8 self-center">
+              <div className="w-12 h-12 bg-status-cacat/10 text-status-cacat rounded-full flex items-center justify-center mx-auto mb-3">
+                <ShieldAlert className="w-6 h-6" />
+              </div>
+              <h2 className="text-base font-bold text-celup-indigo mb-1">
+                Akses Terbatas (RBAC Terkunci)
+              </h2>
+              <p className="text-xs text-teks-sekunder mb-4 leading-relaxed">
+                Peran aktif Anda saat ini (<strong className="text-tinta">{info.name}</strong>) tidak memiliki hak akses operasional untuk membuka halaman <code className="font-mono bg-kabut px-1.5 py-0.5 rounded text-celup-indigo">{pathname}</code>.
+              </p>
+              <button
+                onClick={() => setRole(currentRole)}
+                className="px-4 py-2.5 bg-celup-indigo text-white font-bold text-xs rounded-field shadow-hard hover:bg-celup-indigo/90 flex items-center justify-center gap-2 mx-auto"
+              >
+                <span>Buka Workspace Resmi ({ROLE_DEFAULT_ROUTES[currentRole]})</span>
+                <ArrowRight className="w-4 h-4" />
+              </button>
+            </div>
+          ) : isMobileSimulated ? (
             <div className="w-[390px] min-h-[844px] bg-white border-4 border-celup-indigo rounded-[36px] p-4 shadow-2xl relative overflow-y-auto my-4 flex flex-col">
               <div className="w-32 h-4 bg-celup-indigo rounded-full mx-auto mb-3"></div>
               <div className="flex-1">{children}</div>
