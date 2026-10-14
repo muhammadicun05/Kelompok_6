@@ -57,8 +57,8 @@ export default function WarehousePage() {
 
       if (invData) {
         setItems(invData);
-        if (invData.length > 0 && !selectedItem) {
-          setSelectedItem(invData[0]);
+        if (invData.length > 0) {
+          setSelectedItem((prev: any) => prev || invData[0]);
         }
       }
 
@@ -70,8 +70,8 @@ export default function WarehousePage() {
 
       if (ordData) {
         setOrders(ordData);
-        if (ordData.length > 0 && !selectedOrderId) {
-          setSelectedOrderId(ordData[0].id);
+        if (ordData.length > 0) {
+          setSelectedOrderId((prev: any) => prev || ordData[0].id);
         }
       }
 

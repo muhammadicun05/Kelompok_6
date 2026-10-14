@@ -12,13 +12,14 @@ from pydantic import BaseModel, Field
 from dotenv import load_dotenv
 
 from pure_rag import PureRAGEngine
+from rag_agent import AgenticWorkflowEngine
 
 load_dotenv()
 
 app = FastAPI(
-    title="Lukla Operations Engine — Pure Manual RAG Service",
+    title="Lukla Operations Engine — Pure Manual RAG & Agentic Service",
     description="Microservice AI RAG menggunakan Amazon Titan (us-east-1), Amazon Nova Lite (ap-southeast-1), dan Supabase pgvector.",
-    version="2.0.0"
+    version="2.1.0"
 )
 
 # CORS Middleware agar bisa diakses langsung dari Next.js Frontend
@@ -31,6 +32,7 @@ app.add_middleware(
 )
 
 rag_engine = PureRAGEngine()
+agent_engine = AgenticWorkflowEngine()
 
 
 class AskRequest(BaseModel):
@@ -48,6 +50,12 @@ class CitationItem(BaseModel):
 class AskResponse(BaseModel):
     answer: str
     citations: List[CitationItem]
+
+
+class AgentAskResponse(BaseModel):
+    answer: str
+    citations: List[CitationItem]
+    agent_trace: Optional[Dict[str, Any]] = None
 
 
 class IngestRequest(BaseModel):
@@ -134,6 +142,32 @@ def ask_question(req: AskRequest):
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Gagal memproses pertanyaan RAG: {str(e)}")
+
+
+@app.post("/ask-agent", response_model=AgentAskResponse)
+def ask_agent(req: AskRequest):
+    """
+    Endpoint Agentic RAG Workflow:
+    - Melakukan dekomposisi query menjadi langkah-langkah kerja (QueryDecomposer)
+    - Menjalankan loop perulangan iterasi untuk memproses output LLM
+    - Menjalankan 3 tools:
+        1. lookup_database: SELECT whitelisted tables (orders, products, production_lines)
+        2. process_llm_query_result: LLM data analyzer & summarizer
+        3. answer_knowledge_question: SOP, BRD, dan 10 Aturan Bisnis Resmi Lukla
+    - Format response identik dengan /ask (answer + citations + agent_trace).
+    """
+    if not req.question or not req.question.strip():
+        raise HTTPException(status_code=400, detail="Pertanyaan tidak boleh kosong.")
+
+    try:
+        result = agent_engine.run(
+            question=req.question,
+            role=req.role,
+            client_id=req.client_id
+        )
+        return AgentAskResponse(**result)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Gagal memproses pertanyaan Agent: {str(e)}")
 
 
 @app.post("/ingest")

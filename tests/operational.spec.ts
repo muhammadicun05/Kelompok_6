@@ -14,13 +14,20 @@ test.describe("Lukla Operations Engine - E2E Verification Suite", () => {
     await page.goto("/warehouse");
     await expect(page.locator("main h1")).toContainText("Gudang Multi-Tenant & Anti-Kontaminasi");
 
-    // Select material owned by Klien A using specific test id
-    const materialSelect = page.getByTestId("select-material");
-    await materialSelect.selectOption({ index: 1 }); // RAW-KLA-TASLAN-02 Klien A
+    // Wait for async options to load from Supabase and select deterministically
+    const materialOptionLocator = page.locator('select[data-testid="select-material"] option', { hasText: "Taslan Milky" });
+    await materialOptionLocator.first().waitFor({ state: "attached" });
+    const materialOption = await materialOptionLocator.first().getAttribute("value");
+    if (materialOption) {
+      await page.getByTestId("select-material").selectOption(materialOption);
+    }
 
-    // Select target order owned by Klien B using specific test id
-    const orderSelect = page.getByTestId("select-target-order");
-    await orderSelect.selectOption({ index: 2 }); // ORD-2026-003 Klien B
+    const orderOptionLocator = page.locator('select[data-testid="select-target-order"] option', { hasText: "ORD-2026-003" });
+    await orderOptionLocator.first().waitFor({ state: "attached" });
+    const orderOption = await orderOptionLocator.first().getAttribute("value");
+    if (orderOption) {
+      await page.getByTestId("select-target-order").selectOption(orderOption);
+    }
 
     // Click Keluarkan ke Cutting
     await page.getByRole("button", { name: "Keluarkan ke Cutting" }).click();

@@ -108,9 +108,18 @@ flowchart LR
 * **Frontend**: Next.js 14 App Router, Lucide React, Font Archivo (`tnum` tabular numbers).
 * **Desain Visual**: Mengikuti prinsip *"Lembar kerja pabrik, bukan dashboard SaaS"* ([`DESIGN_SYSTEM.md`](./DESIGN_SYSTEM.md)) dengan palet 6 warna: Kabut (`#E6ECEE`), Lembar (`#F8FAFA`), Celup Indigo (`#26325B`), Tinta (`#151A24`), Kapur (`#E8E36B`), dan Benang Abu (`#9AA5AE`).
 * **Database**: Supabase PostgreSQL 17 project `Kelompok_6` (`wrugjojtvgkuwjqopete`).
-* **AI Engine**:
+* **AI Engine & Agentic Workflow**:
   * **In-App Knowledge Engine** ([`lib/knowledgeEngine.ts`](./lib/knowledgeEngine.ts)): Menyediakan jawaban cerdas, terperinci, non-template dengan rujukan dokumen `.md` resmi secara instan.
-  * **Microservice Pure RAG** ([`lukla-rag-service/`](./lukla-rag-service/)): Python 3.12 FastAPI + AWS Bedrock Cross-Region (Titan di `us-east-1` dan Nova Lite di `ap-southeast-1`).
+  * **Endpoint `/ask` (Pure Manual RAG)**: Endpoint RAG standar berbasis embedding dokumen dan similarity search.
+  * **Endpoint `/ask-agent` & `rag-agent.py` (Agentic Workflow Engine)**:
+    * **3 Specialized Tools**:
+      1. `lookup_database`: Eksekusi kueri `SELECT` aman ke Supabase.
+      2. `process_llm_query_result`: Analisis & rangkuman data database oleh LLM Nova Lite ke metrik operasional.
+      3. `answer_knowledge_question`: RAG rujukan SOP, 10 aturan bisnis resmi, dan parameter penggajian.
+    * **QueryDecomposer**: Memecah query pengguna menjadi langkah-langkah terstruktur (*Step Plan JSON*).
+    * **Iteration Loop**: Loop perulangan ReAct yang mengevaluasi hasil LLM dan memproses eksekusi multi-step.
+    * **SQL Security Guardrail**: Memvalidasi ketat agar kueri **HANYA `SELECT`** dan **HANYA pada 3 tabel yang diizinkan**: `orders`, `products`, dan `production_lines` (semua kueri mutasi data atau tabel sensitif diblokir seketika).
+    * **Response Contract Identik**: Mengembalikan format respons yang sama persis dengan `/ask` (`{"answer": "...", "citations": [...]}`) dengan metadata audit tambahan `agent_trace`.
 
 ---
 
