@@ -39,6 +39,10 @@ const ROLE_PROMPTS: Record<Role, string[]> = {
     "Bagaimana status laporan output saya diverifikasi?",
     "Apakah perbaikan (repair) QC memotong upah saya?",
   ],
+  TAILOR_ASSEMBLY: [
+    "Bagaimana alur penggabungan komponen menjadi produk utuh?",
+    "Kapan produk yang sudah digabung berpindah ke status Menunggu QC?",
+  ],
   QC_INSPECTOR: [
     "Bagaimana unit lolos QC menambah Pool Bonus?",
     "Apakah QC memeriksa per komponen atau produk utuh?",
