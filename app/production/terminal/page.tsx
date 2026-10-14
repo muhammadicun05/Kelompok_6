@@ -63,6 +63,10 @@ export default function ProductionTerminalPage() {
   useEffect(() => {
     if (currentRole === "TAILOR_OPERATOR") {
       setActiveRole("TAILOR_OPERATOR");
+      setTailorSubMode("OPERATOR");
+    } else if (currentRole === "TAILOR_ASSEMBLY") {
+      setActiveRole("TAILOR_OPERATOR");
+      setTailorSubMode("ASSEMBLY");
     } else {
       setActiveRole("MANDOR");
     }

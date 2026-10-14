@@ -1,12 +1,26 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { ClientLayout } from "@/components/Layout/ClientLayout";
+import { PwaManager } from "@/components/PwaManager";
+
+export const viewport: Viewport = {
+  themeColor: "#26325B",
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+};
 
 export const metadata: Metadata = {
   title: "Lukla Operations Engine",
-  description: "Platform Operasi Pabrik Garmen Ciwidey & Snøhund Made-to-Order",
+  description: "Platform Operasi Pabrik Garmen & Snøhund Made-to-Order",
+  manifest: "/manifest.json",
   icons: {
-    icon: "/lukla-logo.png",
+    icon: [
+      { url: "/favicon.png", type: "image/png", sizes: "64x64" },
+      { url: "/favicon.ico", sizes: "any" },
+    ],
+    apple: "/icon-192.png",
+    shortcut: "/favicon.ico",
   },
 };
 
@@ -26,7 +40,10 @@ export default function RootLayout({
         />
       </head>
       <body>
-        <ClientLayout>{children}</ClientLayout>
+        <ClientLayout>
+          {children}
+          <PwaManager />
+        </ClientLayout>
       </body>
     </html>
   );

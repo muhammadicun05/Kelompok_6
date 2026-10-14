@@ -48,4 +48,15 @@ test.describe("Role-Based Access Control (RBAC) & View Switching", () => {
     await expect(page.locator("[data-testid='active-persona-banner']").getByText("Siti Rahma (Penjahit #01)")).toBeVisible();
     await expect(page.getByText("Kirim Laporan ke Mandor (Pending)")).toBeVisible();
   });
+
+  test("Selecting TAILOR_ASSEMBLY navigates to /production/terminal in Assembly Mode", async ({ page }) => {
+    await page.goto("/dashboard");
+
+    const roleSelect = page.locator("header select");
+    await roleSelect.selectOption("TAILOR_ASSEMBLY");
+
+    await expect(page).toHaveURL(/\/production\/terminal/, { timeout: 10000 });
+    await expect(page.locator("[data-testid='active-persona-banner']").getByText("Rina Marlina (Penjahit #02 - Assembly)")).toBeVisible();
+    await expect(page.getByText("Daftar Antrean Tugas FIFO Perakitan")).toBeVisible();
+  });
 });
