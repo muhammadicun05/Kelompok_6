@@ -511,7 +511,32 @@ export function searchKnowledge(question: string, role?: string): { answer: stri
     };
   }
 
-  // 4. Default Context-Rich Answer if no specific entry matched
+  // 4. Out-of-Domain Query Handling (Pertanyaan di luar konteks pabrik garmen Lukla)
+  if (highestScore === 0) {
+    return {
+      answer:
+        `Pertanyaan Anda ("${cleanQ.length > 50 ? cleanQ.slice(0, 50) + "..." : cleanQ}") berada di luar lingkup operasional pabrik garmen Lukla Manufacturing.\n\n` +
+        "Sebagai Asisten Pengetahuan Resmi Lukla Operations Engine, saya dikhususkan untuk menjawab hal-hal seputar operasional pabrik di Ciwidey:\n" +
+        "1. Aturan Penggajian Borongan Sabtu & Uang Makan (10–15%) Tunai\n" +
+        "2. Mekanisme & Pembagian Pool Bonus QC 3-Arah\n" +
+        "3. Validasi Anti-Kontaminasi Bahan Baku di Pintu Cutting (FR-6.2)\n" +
+        "4. Alur Sampel Klien, Studi Waktu (SMV) & Order Produksi Massal (Tim Sampler)\n" +
+        "5. 3 Skema Maklon (CMT, Semi-CMT, Full Package)\n\n" +
+        "Silakan ajukan pertanyaan seputar SOP, aturan bisnis, atau alur kerja 6 fase produksi Lukla!",
+      citations: [
+        {
+          source: "docs/Catatan_Asumsi_dan_Aturan_Bisnis_Presentasi.md",
+          text: "10 Aturan Bisnis Resmi & Bahan Presentasi Lukla Operations Engine",
+        },
+        {
+          source: "PRD_Lukla_Operations_Engine.md",
+          text: "Spesifikasi Domain & Lingkup Operasional Lukla",
+        },
+      ],
+    };
+  }
+
+  // 5. Default Context-Rich Answer if match score is low but has some domain relevance
   return {
     answer:
       "Berdasarkan dokumen operasional Lukla Operations Engine (BRD V3 & 10 Aturan Bisnis Resmi):\n\n" +
