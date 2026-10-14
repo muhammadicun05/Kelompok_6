@@ -159,9 +159,9 @@ export default function WarehousePage() {
 
         <button
           onClick={loadData}
-          className="p-2 rounded-field bg-white border border-garis text-celup-indigo hover:border-celup-indigo text-xs flex items-center gap-1.5 self-start shadow-hard"
+          className="px-3.5 py-2 rounded-field bg-white border border-garis text-celup-indigo hover:border-celup-indigo text-xs font-semibold flex items-center justify-center gap-1.5 w-full sm:w-auto shadow-hard transition-all active:translate-y-0.5"
         >
-          <RefreshCw className="w-3.5 h-3.5" />
+          <RefreshCw className="w-3.5 h-3.5 flex-shrink-0" />
           <span>Refresh Stok</span>
         </button>
       </div>
@@ -242,20 +242,20 @@ export default function WarehousePage() {
             <label className="text-xs font-semibold text-tinta block mb-1">
               3. Kuantitas Dikeluarkan (Yard):
             </label>
-            <div className="flex gap-2">
+            <div className="flex flex-col sm:flex-row gap-2">
               <input
                 type="number"
                 min="1"
                 value={qtyToIssue}
                 onChange={(e) => setQtyToIssue(Number(e.target.value))}
-                className="w-24 text-xs border border-garis bg-white p-2.5 rounded-field font-bold tabular-nums text-celup-indigo"
+                className="w-full sm:w-24 text-xs border border-garis bg-white p-2.5 rounded-field font-bold tabular-nums text-celup-indigo"
               />
               <button
                 onClick={handleIssueMaterial}
-                className="flex-1 bg-celup-indigo text-white font-bold text-xs rounded-field shadow-hard hover:bg-celup-indigo/90 flex items-center justify-center gap-1.5 transition-all active:translate-y-0.5"
+                className="w-full sm:flex-1 bg-celup-indigo text-white font-bold text-xs p-2.5 rounded-field shadow-hard hover:bg-celup-indigo/90 flex items-center justify-center gap-1.5 transition-all active:translate-y-0.5 whitespace-nowrap"
               >
                 <span>Keluarkan ke Cutting</span>
-                <ArrowRight className="w-3.5 h-3.5" />
+                <ArrowRight className="w-3.5 h-3.5 flex-shrink-0" />
               </button>
             </div>
           </div>
@@ -289,7 +289,7 @@ export default function WarehousePage() {
           </div>
 
           {/* Client Filter Tags */}
-          <div className="flex items-center gap-1.5 overflow-x-auto">
+          <div className="flex flex-wrap items-center gap-1.5">
             <button
               onClick={() => setFilterClient("ALL")}
               className={`px-2.5 py-1 text-xs rounded font-semibold border ${

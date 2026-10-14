@@ -170,15 +170,15 @@ export default function SamplesPage() {
                   </p>
 
                   {ver.isApproved && (
-                    <div className="mt-4 pt-3 border-t border-garis flex flex-col sm:flex-row items-center justify-between gap-3 bg-kabut/40 p-3 rounded">
-                      <div className="flex items-center gap-2 w-full sm:w-auto">
+                    <div className="mt-4 pt-3 border-t border-garis flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-kabut/40 p-3 rounded">
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-2 w-full sm:w-auto">
                         <label className="text-xs font-semibold text-tinta whitespace-nowrap">
                           Skema Maklon:
                         </label>
                         <select
                           value={selectedScheme}
                           onChange={(e) => setSelectedScheme(e.target.value)}
-                          className="text-xs border border-garis bg-white px-2 py-1 rounded text-celup-indigo font-semibold"
+                          className="w-full sm:w-auto text-xs border border-garis bg-white px-2.5 py-1.5 rounded text-celup-indigo font-semibold"
                         >
                           <option value="CMT">CMT (Titipan 100%)</option>
                           <option value="SEMI_CMT">SEMI_CMT (Kain Klien + PO Aksesoris)</option>
@@ -188,10 +188,10 @@ export default function SamplesPage() {
 
                       <button
                         onClick={handleConvertToMassOrder}
-                        className="w-full sm:w-auto px-4 py-2 bg-celup-indigo text-white text-xs font-bold rounded-field shadow-hard hover:bg-celup-indigo/90 flex items-center justify-center gap-1.5 transition-all active:translate-y-0.5"
+                        className="w-full sm:w-auto px-4 py-2 bg-celup-indigo text-white text-xs font-bold rounded-field shadow-hard hover:bg-celup-indigo/90 flex items-center justify-center gap-1.5 transition-all active:translate-y-0.5 whitespace-nowrap"
                       >
                         <span>Jadikan Pesanan Massal</span>
-                        <ArrowRight className="w-3.5 h-3.5" />
+                        <ArrowRight className="w-3.5 h-3.5 flex-shrink-0" />
                       </button>
                     </div>
                   )}

@@ -171,28 +171,30 @@ export default function ProductionTerminalPage() {
         </div>
 
         {/* Dual Mode Switcher Bar */}
-        <div className="flex items-center gap-2 bg-kabut p-1 rounded-field border border-garis self-start">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-1.5 bg-kabut p-1.5 rounded-field border border-garis w-full sm:w-auto">
           <span className="text-[11px] font-semibold text-teks-sekunder px-1">Mode Terminal:</span>
-          <button
-            onClick={() => setActiveRole("TAILOR_OPERATOR")}
-            className={`px-3 py-1.5 rounded text-xs font-bold transition-all ${
-              activeRole === "TAILOR_OPERATOR"
-                ? "bg-celup-indigo text-white shadow-sm"
-                : "text-teks-sekunder hover:text-celup-indigo"
-            }`}
-          >
-            Penjahit (Pending)
-          </button>
-          <button
-            onClick={() => setActiveRole("MANDOR")}
-            className={`px-3 py-1.5 rounded text-xs font-bold transition-all ${
-              activeRole === "MANDOR"
-                ? "bg-kapur text-celup-indigo shadow-sm"
-                : "text-teks-sekunder hover:text-celup-indigo"
-            }`}
-          >
-            Mandor (Langsung Verified)
-          </button>
+          <div className="grid grid-cols-2 gap-1.5">
+            <button
+              onClick={() => setActiveRole("TAILOR_OPERATOR")}
+              className={`px-2.5 sm:px-3 py-1.5 rounded text-xs font-bold transition-all text-center whitespace-nowrap ${
+                activeRole === "TAILOR_OPERATOR"
+                  ? "bg-celup-indigo text-white shadow-sm"
+                  : "bg-white/80 text-teks-sekunder hover:text-celup-indigo border border-garis"
+              }`}
+            >
+              Penjahit (Pending)
+            </button>
+            <button
+              onClick={() => setActiveRole("MANDOR")}
+              className={`px-2.5 sm:px-3 py-1.5 rounded text-xs font-bold transition-all text-center whitespace-nowrap ${
+                activeRole === "MANDOR"
+                  ? "bg-kapur text-celup-indigo shadow-sm border border-celup-indigo"
+                  : "bg-white/80 text-teks-sekunder hover:text-celup-indigo border border-garis"
+              }`}
+            >
+              Mandor (Verified)
+            </button>
+          </div>
         </div>
       </div>
 
@@ -329,7 +331,7 @@ export default function ProductionTerminalPage() {
             <button
               onClick={handleSubmitOutput}
               disabled={loading}
-              className={`w-full py-4 rounded-terminal font-extrabold text-base shadow-hard flex items-center justify-center gap-2 transition-all active:translate-y-1 active:shadow-none ${
+              className={`w-full py-3.5 sm:py-4 px-2 sm:px-4 rounded-terminal font-extrabold text-sm sm:text-base shadow-hard flex items-center justify-center gap-2 transition-all active:translate-y-1 active:shadow-none text-center ${
                 activeRole === "MANDOR"
                   ? "bg-kapur text-celup-indigo hover:bg-kapur/90"
                   : "bg-celup-indigo text-white hover:bg-celup-indigo/90"
@@ -337,13 +339,13 @@ export default function ProductionTerminalPage() {
             >
               {activeRole === "MANDOR" ? (
                 <>
-                  <Check className="w-5 h-5 stroke-[3]" />
-                  <span>Input & Verifikasi Mandor (Langsung Sah)</span>
+                  <Check className="w-5 h-5 stroke-[3] flex-shrink-0" />
+                  <span className="truncate sm:whitespace-normal">Input & Verifikasi Mandor (Langsung Sah)</span>
                 </>
               ) : (
                 <>
-                  <Send className="w-5 h-5" />
-                  <span>Kirim Laporan ke Mandor (Pending)</span>
+                  <Send className="w-5 h-5 flex-shrink-0" />
+                  <span className="truncate sm:whitespace-normal">Kirim Laporan ke Mandor (Pending)</span>
                 </>
               )}
             </button>
@@ -396,18 +398,18 @@ export default function ProductionTerminalPage() {
               })}
             </div>
 
-            <div className="flex items-center justify-between text-[11px] text-teks-sekunder pt-2 border-t border-garis">
-              <span className="flex items-center gap-1">
-                <span className="w-3 h-3 bg-kapur border border-celup-indigo rounded"></span> Terpilih
+            <div className="grid grid-cols-2 sm:flex sm:items-center sm:justify-between gap-2 text-[10px] sm:text-[11px] text-teks-sekunder pt-2 border-t border-garis">
+              <span className="flex items-center gap-1.5">
+                <span className="w-3 h-3 bg-kapur border border-celup-indigo rounded flex-shrink-0"></span> Terpilih
               </span>
-              <span className="flex items-center gap-1">
-                <span className="w-3 h-3 border-2 border-dashed border-celup-indigo rounded"></span> Ada Pending
+              <span className="flex items-center gap-1.5">
+                <span className="w-3 h-3 border-2 border-dashed border-celup-indigo rounded flex-shrink-0"></span> Ada Pending
               </span>
-              <span className="flex items-center gap-1">
-                <span className="w-3 h-3 border border-status-perbaikan text-status-perbaikan rounded"></span> Mesin #61–#65 Baru
+              <span className="flex items-center gap-1.5">
+                <span className="w-3 h-3 border border-status-perbaikan text-status-perbaikan rounded flex-shrink-0"></span> Mesin Baru (#61–#65)
               </span>
-              <span className="flex items-center gap-1">
-                <span className="w-3 h-3 bg-white border border-garis rounded"></span> Aktif
+              <span className="flex items-center gap-1.5">
+                <span className="w-3 h-3 bg-white border border-garis rounded flex-shrink-0"></span> Aktif
               </span>
             </div>
           </div>

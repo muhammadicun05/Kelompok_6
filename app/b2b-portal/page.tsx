@@ -56,10 +56,10 @@ export default function B2bPortalPage() {
       </div>
 
       {/* Main Tab Controls */}
-      <div className="flex gap-2 border-b border-garis pb-1">
+      <div className="flex gap-2 border-b border-garis pb-1 overflow-x-auto">
         <button
           onClick={() => setActiveTab("PROGRESS")}
-          className={`px-4 py-2 text-xs font-bold rounded-t-work border-b-2 transition-all ${
+          className={`px-3.5 sm:px-4 py-2 text-xs font-bold rounded-t-work border-b-2 transition-all whitespace-nowrap ${
             activeTab === "PROGRESS"
               ? "border-celup-indigo text-celup-indigo bg-white"
               : "border-transparent text-teks-sekunder hover:text-celup-indigo"
@@ -69,7 +69,7 @@ export default function B2bPortalPage() {
         </button>
         <button
           onClick={() => setActiveTab("FABRIC")}
-          className={`px-4 py-2 text-xs font-bold rounded-t-work border-b-2 transition-all ${
+          className={`px-3.5 sm:px-4 py-2 text-xs font-bold rounded-t-work border-b-2 transition-all whitespace-nowrap ${
             activeTab === "FABRIC"
               ? "border-celup-indigo text-celup-indigo bg-white"
               : "border-transparent text-teks-sekunder hover:text-celup-indigo"
@@ -79,7 +79,7 @@ export default function B2bPortalPage() {
         </button>
         <button
           onClick={() => setActiveTab("PO")}
-          className={`px-4 py-2 text-xs font-bold rounded-t-work border-b-2 transition-all ${
+          className={`px-3.5 sm:px-4 py-2 text-xs font-bold rounded-t-work border-b-2 transition-all whitespace-nowrap ${
             activeTab === "PO"
               ? "border-celup-indigo text-celup-indigo bg-white"
               : "border-transparent text-teks-sekunder hover:text-celup-indigo"

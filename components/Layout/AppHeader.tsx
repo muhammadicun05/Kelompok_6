@@ -31,18 +31,23 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
   onToggleMobileSim,
 }) => {
   return (
-    <header className="h-14 bg-white border-b border-garis px-4 flex items-center justify-between sticky top-0 z-30">
+    <header className="h-14 bg-white border-b border-garis px-2.5 sm:px-4 flex items-center justify-between sticky top-0 z-30">
       {/* Brand / Logo */}
-      <div className="flex items-center gap-3">
-        <div className="w-8 h-8 rounded-work bg-celup-indigo flex items-center justify-center text-white font-bold text-sm tracking-widest shadow-sm">
-          LK
+      <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+        <div className="h-9 w-9 rounded-work bg-white border border-garis flex items-center justify-center p-0.5 shadow-sm flex-shrink-0">
+          <img
+            src="/lukla-logo.png"
+            alt="Lukla Manufacturing"
+            className="h-full w-full object-contain"
+          />
         </div>
-        <div>
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-bold text-celup-indigo tracking-tight">
-              Lukla Operations Engine
+        <div className="min-w-0">
+          <div className="flex items-center gap-1.5 sm:gap-2">
+            <span className="text-xs sm:text-sm font-bold text-celup-indigo tracking-tight truncate">
+              <span className="inline sm:hidden">Lukla Ops</span>
+              <span className="hidden sm:inline">Lukla Operations Engine</span>
             </span>
-            <span className="hidden sm:inline-block text-[10px] font-mono bg-kabut px-1.5 py-0.5 rounded text-teks-sekunder">
+            <span className="hidden md:inline-block text-[10px] font-mono bg-kabut px-1.5 py-0.5 rounded text-teks-sekunder flex-shrink-0">
               Ciwidey ±70 Mesin
             </span>
           </div>
@@ -50,15 +55,15 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
       </div>
 
       {/* Control Right Bar */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
         {/* Role Switcher */}
-        <div className="flex items-center gap-1.5 bg-kabut px-2 py-1 rounded-field border border-garis max-w-[140px] sm:max-w-none">
+        <div className="flex items-center gap-1 sm:gap-1.5 bg-kabut px-1.5 sm:px-2 py-1 rounded-field border border-garis max-w-[135px] sm:max-w-none">
           <Users className="w-3.5 h-3.5 text-celup-indigo hidden sm:block flex-shrink-0" />
-          <span className="text-[11px] font-semibold text-teks-sekunder hidden md:inline flex-shrink-0">Peran:</span>
+          <span className="text-[11px] font-semibold text-teks-sekunder hidden lg:inline flex-shrink-0">Peran:</span>
           <select
             value={currentRole}
             onChange={(e) => onRoleChange(e.target.value as Role)}
-            className="text-xs font-semibold bg-transparent text-celup-indigo focus:outline-none cursor-pointer truncate max-w-[120px] sm:max-w-none"
+            className="text-[11px] sm:text-xs font-semibold bg-transparent text-celup-indigo focus:outline-none cursor-pointer truncate max-w-[125px] sm:max-w-none"
           >
             {ROLES_LIST.map((r) => (
               <option key={r.id} value={r.id}>
@@ -94,9 +99,9 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
         {/* Tanya Lukla AI Button */}
         <button
           onClick={onToggleAi}
-          className="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-field bg-celup-indigo text-white font-medium text-xs hover:bg-celup-indigo/90 shadow-hard transition-all active:translate-y-0.5"
+          className="flex-shrink-0 flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-field bg-celup-indigo text-white font-medium text-xs hover:bg-celup-indigo/90 shadow-hard transition-all active:translate-y-0.5"
         >
-          <Sparkles className="w-3.5 h-3.5 text-kapur" />
+          <Sparkles className="w-3.5 h-3.5 text-kapur flex-shrink-0" />
           <span>Tanya AI</span>
         </button>
       </div>

@@ -126,9 +126,9 @@ export default function PayrollPage() {
         <button
           onClick={calculatePayroll}
           disabled={loading}
-          className="px-4 py-2 bg-celup-indigo text-white font-bold text-xs rounded-field shadow-hard hover:bg-celup-indigo/90 flex items-center gap-1.5 self-start transition-all active:translate-y-0.5"
+          className="w-full sm:w-auto px-4 py-2 bg-celup-indigo text-white font-bold text-xs rounded-field shadow-hard hover:bg-celup-indigo/90 flex items-center justify-center gap-1.5 transition-all active:translate-y-0.5"
         >
-          <Calculator className="w-3.5 h-3.5" />
+          <Calculator className="w-3.5 h-3.5 flex-shrink-0" />
           <span>Kalkulasi Ulang Payroll</span>
         </button>
       </div>
@@ -302,11 +302,12 @@ export default function PayrollPage() {
         </div>
 
         {/* Perforated Paper Payslip (5 cols, Section 8.5 of DESIGN_SYSTEM.md) */}
-        <div className="lg:col-span-5 flex justify-center">
+        <div className="lg:col-span-5 flex justify-center w-full">
           {selectedSlipWorker ? (
-            <div className="w-[360px] bg-white border border-garis rounded-work shadow-hard p-5 text-xs text-tinta font-mono relative">
+            <div className="w-full max-w-[360px] bg-white border border-garis rounded-work shadow-hard p-4 sm:p-5 text-xs text-tinta font-mono relative">
               {/* Top Perforation Line */}
-              <div className="border-b-2 border-dashed border-garis pb-3 mb-4 text-center">
+              <div className="border-b-2 border-dashed border-garis pb-3 mb-4 text-center flex flex-col items-center">
+                <img src="/lukla-logo.png" alt="Lukla Manufacturing" className="h-10 w-auto object-contain mb-1" />
                 <span className="text-[10px] uppercase tracking-widest text-teks-sekunder block">
                   LUKLA OPERATIONS • CIWIDEY
                 </span>

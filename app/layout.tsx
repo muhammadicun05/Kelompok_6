@@ -5,6 +5,9 @@ import { ClientLayout } from "@/components/Layout/ClientLayout";
 export const metadata: Metadata = {
   title: "Lukla Operations Engine",
   description: "Platform Operasi Pabrik Garmen Ciwidey & Snøhund Made-to-Order",
+  icons: {
+    icon: "/lukla-logo.png",
+  },
 };
 
 export default function RootLayout({

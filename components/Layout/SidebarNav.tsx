@@ -63,7 +63,7 @@ export const SidebarNav: React.FC<SidebarNavProps> = ({ currentRole }) => {
       </aside>
 
       {/* Mobile Sticky Bottom Bar (Section 9.2) */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-white border-t border-garis z-30 flex items-center justify-around px-2 shadow-lg">
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-white border-t border-garis z-30 flex items-center justify-between sm:justify-around px-1 overflow-x-auto shadow-lg select-none">
         {filteredNavItems.map((item) => {
           const Icon = item.icon;
           const isActive = pathname === item.href || (item.href !== "/dashboard" && pathname.startsWith(item.href));
@@ -71,20 +71,20 @@ export const SidebarNav: React.FC<SidebarNavProps> = ({ currentRole }) => {
             <Link
               key={item.href}
               href={item.href}
-              className={`flex flex-col items-center justify-center p-1 rounded transition-all ${
+              className={`flex-1 min-w-[48px] max-w-[80px] flex flex-col items-center justify-center py-1 px-0.5 rounded transition-all ${
                 isActive
                   ? "text-celup-indigo font-bold"
                   : "text-teks-sekunder hover:text-celup-indigo"
               }`}
             >
               <div
-                className={`p-1 rounded-field ${
-                  isActive ? "bg-kapur text-celup-indigo" : ""
+                className={`p-1 rounded-field transition-all ${
+                  isActive ? "bg-kapur text-celup-indigo shadow-sm scale-105" : ""
                 }`}
               >
-                <Icon className="w-5 h-5" />
+                <Icon className="w-4 h-4 sm:w-5 sm:h-5" />
               </div>
-              <span className="text-[9px] mt-0.5">{item.label}</span>
+              <span className="text-[9px] mt-0.5 whitespace-nowrap leading-tight text-center">{item.label}</span>
             </Link>
           );
         })}

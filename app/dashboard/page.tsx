@@ -92,20 +92,20 @@ export default function DashboardPage() {
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="grid grid-cols-2 sm:flex sm:items-center gap-2 w-full sm:w-auto">
           <Link
             href="/production/terminal"
-            className="px-3.5 py-2 rounded-work bg-celup-indigo text-white text-xs font-semibold hover:bg-celup-indigo/90 shadow-hard flex items-center gap-1.5 transition-all"
+            className="px-3 py-2 rounded-work bg-celup-indigo text-white text-xs font-semibold hover:bg-celup-indigo/90 shadow-hard flex items-center justify-center gap-1.5 transition-all text-center"
           >
-            <Activity className="w-3.5 h-3.5" />
-            <span>Terminal 30 Menit</span>
+            <Activity className="w-3.5 h-3.5 flex-shrink-0" />
+            <span className="truncate">Terminal 30m</span>
           </Link>
           <Link
             href="/qc/terminal"
-            className="px-3.5 py-2 rounded-work bg-white border border-garis text-celup-indigo text-xs font-semibold hover:border-celup-indigo shadow-hard flex items-center gap-1.5 transition-all"
+            className="px-3 py-2 rounded-work bg-white border border-garis text-celup-indigo text-xs font-semibold hover:border-celup-indigo shadow-hard flex items-center justify-center gap-1.5 transition-all text-center"
           >
-            <CheckCircle2 className="w-3.5 h-3.5 text-status-lolos" />
-            <span>Terminal QC</span>
+            <CheckCircle2 className="w-3.5 h-3.5 text-status-lolos flex-shrink-0" />
+            <span className="truncate">Terminal QC</span>
           </Link>
         </div>
       </div>

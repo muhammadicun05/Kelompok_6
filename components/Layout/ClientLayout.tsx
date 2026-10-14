@@ -44,25 +44,25 @@ function InnerLayout({ children }: { children: React.ReactNode }) {
       {/* Active Persona Banner Bar */}
       <div
         data-testid="active-persona-banner"
-        className="bg-white border-b border-garis px-4 py-1.5 flex items-center justify-between text-xs"
+        className="bg-white border-b border-garis px-2.5 sm:px-4 py-1.5 flex items-center justify-between text-xs gap-2 min-w-0"
       >
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 min-w-0">
           <span
-            className="w-2.5 h-2.5 rounded-full"
+            className="w-2.5 h-2.5 rounded-full flex-shrink-0"
             style={{ backgroundColor: info.color }}
           ></span>
-          <span className="font-bold text-celup-indigo">{info.name}</span>
-          <span className="text-teks-sekunder hidden sm:inline">• {info.desc}</span>
+          <span className="font-bold text-celup-indigo truncate">{info.name}</span>
+          <span className="text-teks-sekunder hidden md:inline truncate">• {info.desc}</span>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-shrink-0">
           {currentRole === "B2B_CLIENT" ? (
-            <span className="text-[11px] font-bold text-status-lolos flex items-center gap-1 bg-kabut px-2 py-0.5 rounded">
-              <ShieldCheck className="w-3.5 h-3.5" />
+            <span className="text-[10px] sm:text-[11px] font-bold text-status-lolos flex items-center gap-1 bg-kabut px-1.5 sm:px-2 py-0.5 rounded whitespace-nowrap">
+              <ShieldCheck className="w-3.5 h-3.5 flex-shrink-0" />
               <span>Multi-Tenant RLS Terkunci</span>
             </span>
           ) : (
-            <span className="text-[11px] font-mono text-teks-sekunder">
+            <span className="text-[10px] sm:text-[11px] font-mono text-teks-sekunder hidden sm:inline whitespace-nowrap">
               Internal Pabrik Lukla Ciwidey
             </span>
           )}

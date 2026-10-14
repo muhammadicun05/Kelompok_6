@@ -140,12 +140,12 @@ export default function QcTerminalPage() {
         </div>
 
         {/* Selected Order & Article Tag */}
-        <div className="flex items-center gap-2">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-2 w-full sm:w-auto">
           <label className="text-xs font-semibold text-teks-sekunder">Inspeksi Order:</label>
           <select
             value={selectedOrderId}
             onChange={(e) => setSelectedOrderId(e.target.value)}
-            className="text-xs font-bold text-celup-indigo bg-white border border-garis px-3 py-1.5 rounded-field"
+            className="w-full sm:w-auto text-xs font-bold text-celup-indigo bg-white border border-garis px-3 py-1.5 rounded-field"
           >
             {orders.map((o) => (
               <option key={o.id} value={o.id}>
@@ -185,7 +185,7 @@ export default function QcTerminalPage() {
           </div>
           <button
             onClick={handleSimulateUat03}
-            className="px-3 py-1 bg-kabut border border-garis hover:border-celup-indigo rounded text-xs font-bold text-celup-indigo self-start"
+            className="w-full sm:w-auto px-3.5 py-1.5 bg-kabut border border-garis hover:border-celup-indigo rounded text-xs font-bold text-celup-indigo transition-all active:translate-y-0.5"
           >
             Simulasikan 3.000 Unit Lolos (UAT-03)
           </button>
@@ -241,16 +241,16 @@ export default function QcTerminalPage() {
         </div>
 
         {/* 3 Giant Buttons: Fixed Order, Minimal 40% height feel, high contrast */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4">
           {/* Button 1: LOLOS (PASS) */}
           <button
             onClick={() => handleDecision("PASS")}
             disabled={loading}
-            className="min-h-[140px] rounded-terminal bg-status-lolos text-white p-6 shadow-hard flex flex-col items-center justify-center gap-2 hover:bg-status-lolos/95 transition-all active:translate-y-1 active:shadow-none"
+            className="min-h-[120px] sm:min-h-[140px] rounded-terminal bg-status-lolos text-white p-4 sm:p-6 shadow-hard flex flex-col items-center justify-center gap-2 hover:bg-status-lolos/95 transition-all active:translate-y-1 active:shadow-none"
           >
-            <CheckCircle2 className="w-12 h-12 stroke-[2.5]" />
-            <span className="text-2xl font-extrabold tracking-wider">LOLOS</span>
-            <span className="text-xs opacity-90 font-medium">
+            <CheckCircle2 className="w-10 h-10 sm:w-12 sm:h-12 stroke-[2.5]" />
+            <span className="text-xl sm:text-2xl font-extrabold tracking-wider">LOLOS</span>
+            <span className="text-xs opacity-90 font-medium text-center">
               +Rp 300 ke Pool Bonus • Masuk Barang Jadi
             </span>
           </button>
@@ -259,11 +259,11 @@ export default function QcTerminalPage() {
           <button
             onClick={() => handleDecision("REPAIR")}
             disabled={loading}
-            className="min-h-[140px] rounded-terminal bg-status-perbaikan text-white p-6 shadow-hard flex flex-col items-center justify-center gap-2 hover:bg-status-perbaikan/95 transition-all active:translate-y-1 active:shadow-none"
+            className="min-h-[120px] sm:min-h-[140px] rounded-terminal bg-status-perbaikan text-white p-4 sm:p-6 shadow-hard flex flex-col items-center justify-center gap-2 hover:bg-status-perbaikan/95 transition-all active:translate-y-1 active:shadow-none"
           >
-            <RotateCcw className="w-12 h-12 stroke-[2.5]" />
-            <span className="text-2xl font-extrabold tracking-wider">PERBAIKAN</span>
-            <span className="text-xs opacity-90 font-medium">
+            <RotateCcw className="w-10 h-10 sm:w-12 sm:h-12 stroke-[2.5]" />
+            <span className="text-xl sm:text-2xl font-extrabold tracking-wider">PERBAIKAN</span>
+            <span className="text-xs opacity-90 font-medium text-center">
               Kembali ke Lini Jahit • Tanpa Potong Upah
             </span>
           </button>
@@ -272,11 +272,11 @@ export default function QcTerminalPage() {
           <button
             onClick={() => handleDecision("REJECT")}
             disabled={loading}
-            className="min-h-[140px] rounded-terminal bg-status-cacat text-white p-6 shadow-hard flex flex-col items-center justify-center gap-2 hover:bg-status-cacat/95 transition-all active:translate-y-1 active:shadow-none"
+            className="min-h-[120px] sm:min-h-[140px] rounded-terminal bg-status-cacat text-white p-4 sm:p-6 shadow-hard flex flex-col items-center justify-center gap-2 hover:bg-status-cacat/95 transition-all active:translate-y-1 active:shadow-none"
           >
-            <XCircle className="w-12 h-12 stroke-[2.5]" />
-            <span className="text-2xl font-extrabold tracking-wider">CACAT</span>
-            <span className="text-xs opacity-90 font-medium">
+            <XCircle className="w-10 h-10 sm:w-12 sm:h-12 stroke-[2.5]" />
+            <span className="text-xl sm:text-2xl font-extrabold tracking-wider">CACAT</span>
+            <span className="text-xs opacity-90 font-medium text-center">
               Catat Jenis Cacat • Alihkan Rute
             </span>
           </button>
