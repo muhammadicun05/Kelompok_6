@@ -24,15 +24,83 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* Ensure simulated mobile frame behaves strictly without horizontal spill */
+/* ==========================================================================
+   Simulated Mobile Frame (390x844) Viewport Overrides
+   Forces true mobile single-column / 2-column layout when viewed on desktop
+   ========================================================================== */
 .mobile-frame-sim {
+  width: 390px !important;
+  max-width: 390px !important;
+  min-height: 844px !important;
   overflow-x: hidden !important;
-  max-width: 100% !important;
+  padding: 1rem !important;
 }
 
 .mobile-frame-sim * {
   max-width: 100%;
 }
+
+/* Force flex containers to stack vertically inside simulated phone */
+.mobile-frame-sim .md\:flex-row,
+.mobile-frame-sim .sm\:flex-row,
+.mobile-frame-sim .lg\:flex-row {
+  flex-direction: column !important;
+  align-items: stretch !important;
+}
+
+/* Page headers & top action bars */
+.mobile-frame-sim .md\:justify-between,
+.mobile-frame-sim .sm\:justify-between {
+  justify-content: flex-start !important;
+}
+
+.mobile-frame-sim .md\:w-auto,
+.mobile-frame-sim .sm\:w-auto {
+  width: 100% !important;
+}
+
+/* Force multi-column desktop grids to collapse into single-column mobile stack */
+.mobile-frame-sim .lg\:grid-cols-3,
+.mobile-frame-sim .lg\:grid-cols-12,
+.mobile-frame-sim .md\:grid-cols-3,
+.mobile-frame-sim .sm\:grid-cols-3 {
+  grid-template-columns: repeat(1, minmax(0, 1fr)) !important;
+}
+
+/* Reset column spans in desktop grids */
+.mobile-frame-sim .lg\:col-span-2,
+.mobile-frame-sim .lg\:col-span-3,
+.mobile-frame-sim .lg\:col-span-4,
+.mobile-frame-sim .lg\:col-span-5,
+.mobile-frame-sim .lg\:col-span-6,
+.mobile-frame-sim .lg\:col-span-7,
+.mobile-frame-sim .lg\:col-span-8,
+.mobile-frame-sim .lg\:col-span-9,
+.mobile-frame-sim .lg\:col-span-12 {
+  grid-column: span 1 / span 1 !important;
+}
+
+/* 4 KPI cards: Strictly 2 columns on mobile (2x2 grid), overriding lg:grid-cols-4 */
+.mobile-frame-sim .lg\:grid-cols-4 {
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+}
+
+/* Any explicit grid-cols-2 (like KPI cards, header action buttons) */
+.mobile-frame-sim .grid-cols-2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+}
+
+/* 70 Machines Grid: Keep 7 columns on mobile */
+.mobile-frame-sim .sm\:grid-cols-10 {
+  grid-template-columns: repeat(7, minmax(0, 1fr)) !important;
+}
+
+/* Typography adjustments for simulated phone */
+.mobile-frame-sim h1 {
+  font-size: 1.25rem !important; /* text-xl */
+  line-height: 1.75rem !important;
+}
+
 
 /* Tabular nums by default for numeric and table rows */
 table, .tabular-nums {
