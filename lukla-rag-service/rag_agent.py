@@ -264,7 +264,26 @@ class LuklaAgentTools:
             {"source": "docs/Catatan_Asumsi_dan_Aturan_Bisnis_Presentasi.md", "text": "10 Aturan Bisnis Resmi Lukla", "similarity": 0.95}
         ]
 
-        if any(w in clean_q for w in ["gaji", "upah", "borongan", "clawback"]):
+        if any(w in clean_q for w in ["halo", "halow", "hai", "hello", "hi", "pagi", "siang", "malam", "salam"]):
+            answer = (
+                "Halo! Saya Tanya Lukla AI, Asisten Pengetahuan Resmi Lukla Operations Engine. "
+                "Saya siap membantu Anda memahami seluruh SOP dan aturan operasional pabrik di Ciwidey, seperti: "
+                "1) Penggajian borongan mingguan & uang makan (10–15%) tunai, "
+                "2) Pembagian Pool Bonus QC 3-Arah, "
+                "3) Validasi Anti-Kontaminasi bahan baku (FR-6.2), "
+                "4) Alur revisi sampel (v1 -> v2) oleh Tim Sampler, atau "
+                "5) 3 Skema Maklon (CMT, Semi-CMT, Full Package). "
+                "Apa topik spesifik yang ingin Anda tanyakan?"
+            )
+            citations.append({"source": "PRD_Lukla_Operations_Engine.md", "text": "Asisten Pengetahuan Resmi Lukla"})
+        elif any(w in clean_q for w in ["kenapa", "mengapa"]) and any(w in clean_q for w in ["jawab", "gitu", "begitu", "kayak"]):
+            answer = (
+                "Sebagai asisten AI berbasis dokumen resmi Lukla, jawaban saya mengacu langsung pada SOP pabrik (BRD V3, PRD, dan 10 Aturan Bisnis Resmi). "
+                "Jika pertanyaan Anda berupa sapaan atau kalimat umum tanpa kata kunci operasional (seperti gaji, QC, gudang, atau sampel), sistem menampilkan ringkasan umum pabrik. "
+                "Silakan tanyakan hal teknis atau aturan pabrik yang spesifik agar saya dapat memberikan rujukan pasal dan dokumen yang tepat!"
+            )
+            citations.append({"source": "DESIGN_SYSTEM.md", "text": "Panduan Gaya Bahasa & Ketepatan RAG Tanya Lukla AI"})
+        elif any(w in clean_q for w in ["gaji", "upah", "borongan", "clawback"]):
             answer = (
                 "Gaji borongan penjahit dan tim cutting TIDAK terpengaruh oleh status QC maupun hasil inspeksi (*no clawback*). "
                 "Status Repair atau Reject di QC tidak memotong upah penjahit sama sekali. "
@@ -298,6 +317,26 @@ class LuklaAgentTools:
                 "2) SEMI_CMT (kain dari klien, aksesoris diadakan Lukla); 3) FULL_PACKAGE (100% bahan dan produksi dari Lukla)."
             )
             citations.append({"source": "AGENTS.md", "text": "Bagian 1: 3 Skema Maklon Wajib & Asumsi #5"})
+        elif any(w in clean_q for w in ["sampler", "tim sampel", "sample"]):
+            answer = (
+                "Tim Sampler adalah personel yang mendaftarkan klaim/spesifikasi sampel baru klien ke dalam sistem, "
+                "melakukan studi waktu digital (SMV) dan konsumsi bahan (BOM), mengelola versioning revisi (v1 -> v2), "
+                "serta mengeksekusi penerbitan Order Produksi Massal dari versi sampel yang disetujui."
+            )
+            citations.append({"source": "docs/Catatan_Asumsi_dan_Aturan_Bisnis_Presentasi.md", "text": "Asumsi #10: Wewenang Tim Sampler"})
+        elif any(w in clean_q for w in ["cutting", "potong"]):
+            answer = (
+                "Operasional pemotongan kain (Cutting) dilakukan langsung oleh personil Tim Gudang setelah bahan baku lolos "
+                "validasi anti-kontaminasi FR-6.2 sebelum diserahkan ke penjahit lini. Diasumsikan bahan terkonversi pas sesuai pesanan."
+            )
+            citations.append({"source": "docs/Catatan_Asumsi_dan_Aturan_Bisnis_Presentasi.md", "text": "Asumsi #8 & #9: Operasional Cutting oleh Gudang"})
+        elif any(w in clean_q for w in ["30 menit", "dual mode", "dual-mode", "mandor", "terminal"]):
+            answer = (
+                "Pencatatan produksi dilakukan per interval 30 menit melalui Touch Terminal. Mendukung Dual-Mode: "
+                "jika diinput oleh Penjahit, statusnya 'Pending Verification' (garis putus-putus) dan wajib diverifikasi Mandor. "
+                "Jika diinput langsung oleh Mandor, status langsung 'Verified' (garis penuh) dan masuk perhitungan gaji Sabtu."
+            )
+            citations.append({"source": "Business Requirement Document (BRD)_V3.md", "text": "FR-7.1 s/d FR-7.4: Dual-Mode Terminal 30 Menit"})
         else:
             answer = (
                 "Pabrik garmen Lukla berlokasi di Ciwidey dengan kapasitas dinamis ±70 mesin jahit aktif. "

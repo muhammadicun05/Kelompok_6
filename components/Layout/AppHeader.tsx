@@ -34,7 +34,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
     <header className="h-14 bg-white border-b border-garis px-2.5 sm:px-4 flex items-center justify-between sticky top-0 z-30">
       {/* Brand / Logo */}
       <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-        <div className="h-9 w-9 rounded-work bg-white border border-garis flex items-center justify-center p-0.5 shadow-sm flex-shrink-0">
+        <div className="h-9 w-9 flex items-center justify-center flex-shrink-0">
           <img
             src="/lukla-logo.png"
             alt="Lukla Manufacturing"

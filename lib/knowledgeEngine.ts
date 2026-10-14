@@ -24,6 +24,54 @@ export interface KnowledgeEntry {
 }
 
 export const KNOWLEDGE_BASE: KnowledgeEntry[] = [
+  // 0a. Sapaan & Greeting
+  {
+    id: "sapaan-greeting",
+    keywords: ["halo", "halow", "hai", "hello", "hi", "pagi", "siang", "malam", "salam"],
+    topics: ["sapaan", "bantuan"],
+    questionPatterns: [
+      /^(halo|halow|hai|hello|hi|pagi|siang|malam|tes|test)/i,
+      /selamat (pagi|siang|sore|malam)/i,
+    ],
+    answer:
+      "Halo! Saya Tanya Lukla AI, Asisten Pengetahuan Resmi Lukla Operations Engine. " +
+      "Saya siap membantu Anda memahami seluruh SOP dan aturan operasional pabrik di Ciwidey, seperti: " +
+      "1) Penggajian borongan mingguan & uang makan (10–15%) tunai, " +
+      "2) Pembagian Pool Bonus QC 3-Arah, " +
+      "3) Validasi Anti-Kontaminasi bahan baku (FR-6.2), " +
+      "4) Alur revisi sampel (v1 -> v2) oleh Tim Sampler, atau " +
+      "5) 3 Skema Maklon (CMT, Semi-CMT, Full Package). " +
+      "Apa topik spesifik yang ingin Anda tanyakan?",
+    citations: [
+      {
+        source: "PRD_Lukla_Operations_Engine.md",
+        text: "Asisten Pengetahuan Resmi Lukla Operations Engine",
+      },
+    ],
+  },
+
+  // 0b. Meta Pertanyaan / Evaluasi Jawaban AI
+  {
+    id: "meta-evaluasi-jawaban",
+    keywords: ["kenapa", "mengapa", "jawab", "gitu", "begitu", "kayak", "maksud"],
+    topics: ["meta", "ai_system"],
+    questionPatterns: [
+      /kenapa.*jawab.*(gitu|begitu|kayak)/i,
+      /mengapa.*jawab.*(gitu|begitu|kayak)/i,
+      /maksud.*kamu/i,
+    ],
+    answer:
+      "Sebagai asisten AI berbasis dokumen resmi Lukla, jawaban saya mengacu langsung pada SOP pabrik (BRD V3, PRD, dan 10 Aturan Bisnis Resmi). " +
+      "Jika pertanyaan Anda berupa sapaan atau kalimat umum tanpa kata kunci operasional (seperti gaji, QC, gudang, atau sampel), sistem menampilkan ringkasan umum pabrik. " +
+      "Silakan tanyakan hal teknis atau aturan pabrik yang spesifik (misalnya: 'Apakah gaji dipotong jika ada barang cacat di QC?') agar saya dapat memberikan rujukan pasal dan dokumen yang tepat!",
+    citations: [
+      {
+        source: "DESIGN_SYSTEM.md",
+        text: "Panduan Gaya Bahasa & Ketepatan RAG Tanya Lukla AI",
+      },
+    ],
+  },
+
   // 1. Gaji Borongan & Tidak Terpengaruh QC (Asumsi #1 & FR-10.1)
   {
     id: "gaji-qc-no-clawback",
