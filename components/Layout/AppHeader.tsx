@@ -48,7 +48,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
               <span className="hidden sm:inline">Lukla Operations Engine</span>
             </span>
             <span className="hidden md:inline-block text-[10px] font-mono bg-kabut px-1.5 py-0.5 rounded text-teks-sekunder flex-shrink-0">
-              Ciwidey ±70 Mesin
+              Sistem Operasional
             </span>
           </div>
         </div>

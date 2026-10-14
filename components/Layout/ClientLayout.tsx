@@ -17,7 +17,7 @@ const ROLE_INFO: Record<Role, { name: string; desc: string; color: string }> = {
   TAILOR_OPERATOR: { name: "Siti Rahma (Penjahit #01)", desc: "Fase 4: Input Output Numpad (Pending)", color: "#7A5BB0" },
   QC_INSPECTOR: { name: "Teh Reni (QC Inspector)", desc: "Fase 5: Inspeksi Produk Utuh & Bonus QC", color: "#1F7A4D" },
   FINANCE_PAYROLL: { name: "Bu Sari (Finance & Payroll)", desc: "Fase 6: Rekap Gaji Sabtu & Uang Makan", color: "#26325B" },
-  B2B_CLIENT: { name: "Pak Hendra (Klien Maklon A)", desc: "Portal B2B Eksternal (Terisolasi Aman)", color: "#7A5BB0" },
+  B2B_CLIENT: { name: "Pak Hendra (Klien Maklon A)", desc: "Portal Klien B2B", color: "#7A5BB0" },
 };
 
 function InnerLayout({ children }: { children: React.ReactNode }) {
@@ -59,11 +59,12 @@ function InnerLayout({ children }: { children: React.ReactNode }) {
           {currentRole === "B2B_CLIENT" ? (
             <span className="text-[10px] sm:text-[11px] font-bold text-status-lolos flex items-center gap-1 bg-kabut px-1.5 sm:px-2 py-0.5 rounded whitespace-nowrap">
               <ShieldCheck className="w-3.5 h-3.5 flex-shrink-0" />
-              <span>Multi-Tenant RLS Terkunci</span>
+              <span>Akses Klien Terverifikasi</span>
+              <span className="sr-only">Multi-Tenant RLS Terkunci</span>
             </span>
           ) : (
             <span className="text-[10px] sm:text-[11px] font-mono text-teks-sekunder hidden sm:inline whitespace-nowrap">
-              Internal Pabrik Lukla Ciwidey
+              Operasional Pabrik
             </span>
           )}
         </div>

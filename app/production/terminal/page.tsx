@@ -39,6 +39,26 @@ export default function ProductionTerminalPage() {
   const [typedQty, setTypedQty] = useState<string>("20");
   const [activeComponent, setActiveComponent] = useState<string>("Badan Depan & Kantong Kanguru");
   const [activeRole, setActiveRole] = useState<"MANDOR" | "TAILOR_OPERATOR">("MANDOR");
+  const [tailorSubMode, setTailorSubMode] = useState<"OPERATOR" | "ASSEMBLY">("OPERATOR");
+  const [fifoQueue, setFifoQueue] = useState([
+    {
+      batchId: "FIFO-B01",
+      orderNumber: "ORD-2026-001",
+      articleName: "Snøhund Alpine Hoodie",
+      components: "Badan Depan, Belakang, Lengan, Rib",
+      qtyAvailable: 50,
+      verifiedAt: "10:00 WIB (Mandor Ujang)",
+    },
+    {
+      batchId: "FIFO-B02",
+      orderNumber: "ORD-2026-002",
+      articleName: "Urban Windbreaker Parka",
+      components: "Badan, Lengan, Hood, Resleting",
+      qtyAvailable: 40,
+      verifiedAt: "10:30 WIB (Mandor Ujang)",
+    },
+  ]);
+  const [selectedFifoBatch, setSelectedFifoBatch] = useState<string>("FIFO-B01");
 
   useEffect(() => {
     if (currentRole === "TAILOR_OPERATOR") {
@@ -124,6 +144,8 @@ export default function ProductionTerminalPage() {
         setNotification(
           activeRole === "MANDOR"
             ? `Output ${qty} pcs di Mesin #${selectedMachine} berhasil dicatat & Langsung VERIFIED!`
+            : tailorSubMode === "ASSEMBLY"
+            ? `Output perakitan ${qty} pcs produk utuh berhasil dikirim (Status PENDING menunggu verifikasi Mandor sebelum ke QC).`
             : `Output ${qty} pcs di Mesin #${selectedMachine} berhasil dikirim (Status PENDING menunggu verifikasi Mandor).`
         );
         loadLogs();
@@ -149,7 +171,7 @@ export default function ProductionTerminalPage() {
 
       const data = await res.json();
       if (data.success) {
-        setNotification("Status berhasil diverifikasi oleh Mandor!");
+        setNotification("Status berhasil diverifikasi oleh Mandor! Batch perakitan produk utuh kini diteruskan ke antrean Terminal QC.");
         loadLogs();
       }
     } catch (err: any) {
@@ -198,6 +220,101 @@ export default function ProductionTerminalPage() {
         </div>
       </div>
 
+      {/* Sub-Mode Penjahit (Operator vs Assembly FIFO) - Catatan Tambahan 14 Okt */}
+      {activeRole === "TAILOR_OPERATOR" && (
+        <div className="p-3 bg-white rounded-work border border-garis shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-bold text-celup-indigo">Tugas Penjahit:</span>
+            <div className="inline-flex rounded-field border border-garis p-0.5 bg-kabut text-xs">
+              <button
+                onClick={() => {
+                  setTailorSubMode("OPERATOR");
+                  setActiveComponent("Badan Depan & Kantong Kanguru");
+                }}
+                className={`px-3 py-1 rounded font-bold transition-all ${
+                  tailorSubMode === "OPERATOR"
+                    ? "bg-celup-indigo text-white shadow-sm"
+                    : "text-teks-sekunder hover:text-celup-indigo"
+                }`}
+              >
+                1. Penjahit-Operator (Komponen)
+              </button>
+              <button
+                onClick={() => {
+                  setTailorSubMode("ASSEMBLY");
+                  setActiveComponent("Assembly Kap & Finishing Utuh");
+                }}
+                className={`px-3 py-1 rounded font-bold transition-all ${
+                  tailorSubMode === "ASSEMBLY"
+                    ? "bg-celup-indigo text-white shadow-sm"
+                    : "text-teks-sekunder hover:text-celup-indigo"
+                }`}
+              >
+                2. Penjahit-Assembly (Perakitan FIFO)
+              </button>
+            </div>
+          </div>
+          <span className="text-[11px] text-teks-sekunder">
+            {tailorSubMode === "OPERATOR"
+              ? "Jahit komponen satuan → diverifikasi Mandor → masuk FIFO Assembly"
+              : "Ambil komponen terverifikasi → satukan jadi produk utuh → diverifikasi Mandor → masuk QC"}
+          </span>
+        </div>
+      )}
+
+      {/* FIFO Assembly Queue Panel (Hanya tampil saat mode Assembly aktif) */}
+      {activeRole === "TAILOR_OPERATOR" && tailorSubMode === "ASSEMBLY" && (
+        <div className="p-4 bg-lembar border-2 border-celup-indigo rounded-work shadow-hard space-y-3">
+          <div className="flex items-center justify-between border-b border-garis pb-2">
+            <div className="flex items-center gap-2">
+              <Clock className="w-4 h-4 text-celup-indigo" />
+              <h3 className="text-xs font-bold text-celup-indigo uppercase tracking-wider">
+                Daftar Antrean Tugas FIFO Perakitan (First In, First Out)
+              </h3>
+            </div>
+            <span className="text-[10px] bg-status-lolos text-white px-2 py-0.5 rounded font-mono font-bold">
+              Prioritas Waktu Selesai Verifikasi Mandor
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+            {fifoQueue.map((item, idx) => (
+              <div
+                key={item.batchId}
+                onClick={() => setSelectedFifoBatch(item.batchId)}
+                className={`p-3 rounded-field border text-xs cursor-pointer transition-all ${
+                  selectedFifoBatch === item.batchId
+                    ? "bg-white border-2 border-celup-indigo shadow-md"
+                    : "bg-white/60 border-garis hover:border-celup-indigo"
+                }`}
+              >
+                <div className="flex items-center justify-between mb-1">
+                  <span className="font-bold text-celup-indigo flex items-center gap-1.5">
+                    {idx === 0 && (
+                      <span className="bg-kapur text-celup-indigo text-[10px] px-1.5 py-0.2 rounded font-extrabold">
+                        FIFO #1
+                      </span>
+                    )}
+                    {item.orderNumber}
+                  </span>
+                  <span className="text-[10px] font-mono text-teks-sekunder">{item.verifiedAt}</span>
+                </div>
+                <div className="font-semibold text-tinta">{item.articleName}</div>
+                <div className="text-[11px] text-teks-sekunder mt-1">
+                  Komponen Lengkap: {item.components}
+                </div>
+                <div className="mt-2 flex items-center justify-between text-[11px] pt-1.5 border-t border-garis">
+                  <span className="font-bold text-status-lolos">Siap Dirakit: {item.qtyAvailable} pcs</span>
+                  <span className="text-celup-indigo font-bold hover:underline">
+                    {selectedFifoBatch === item.batchId ? "● Terpilih untuk Dirakit" : "Pilih Batch"}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {notification && (
         <div className="p-3 bg-white border-2 border-celup-indigo rounded-field text-xs font-semibold text-celup-indigo flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -210,11 +327,11 @@ export default function ProductionTerminalPage() {
         </div>
       )}
 
-      {/* 30-Minute Time Slot Pill Bar with Kapur Highlight (Section 8.1) */}
+      {/* 30-Minute Time Slot Pill Bar */}
       <div className="bg-lembar p-3 rounded-work border border-garis shadow-hard overflow-x-auto">
         <div className="text-[11px] font-semibold text-teks-sekunder mb-2 flex items-center gap-1.5">
           <Clock className="w-3.5 h-3.5 text-celup-indigo" />
-          <span>Slot Waktu 30 Menit Hari Ini (Kapur Menandai Slot Aktif):</span>
+          <span>Interval Waktu 30 Menit:</span>
         </div>
         <div className="flex items-center gap-2">
           {TIME_SLOTS.map((slot) => {

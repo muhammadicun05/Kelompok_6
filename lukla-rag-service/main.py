@@ -13,6 +13,7 @@ from dotenv import load_dotenv
 
 from pure_rag import PureRAGEngine
 from rag_agent import AgenticWorkflowEngine
+from telegram_bot import telegram_bot
 
 load_dotenv()
 load_dotenv(os.path.join(os.path.dirname(__file__), "..", ".env.local"))
@@ -182,6 +183,70 @@ def ingest_document(req: IngestRequest):
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Gagal ingest dokumen: {str(e)}")
+
+
+class TelegramNotifyRequest(BaseModel):
+    event_type: str = Field(..., description="Jenis notifikasi: FACTORY_PULSE, ORDER_APPROVAL, CLIENT_PROGRESS, CUSTOM")
+    chat_id: Optional[str] = None
+    order_id: Optional[str] = None
+    client_name: Optional[str] = None
+    article_name: Optional[str] = None
+    quantity: Optional[int] = None
+    scheme: Optional[str] = None
+    custom_message: Optional[str] = None
+
+
+@app.get("/telegram/status")
+def telegram_status():
+    """
+    Status kesiapan Telegram Bot (Live vs Simulator).
+    """
+    return {
+        "status": "ready",
+        "configured": telegram_bot.is_configured(),
+        "mode": "live" if telegram_bot.is_configured() else "simulated",
+        "bot_username": "@LuklaOpsBot" if telegram_bot.is_configured() else "Simulator Mode (Pending Token)"
+    }
+
+
+@app.post("/notify/telegram")
+def send_telegram_notification(req: TelegramNotifyRequest):
+    """
+    Endpoint integrasi event pabrik ke Telegram Bot:
+    - FACTORY_PULSE: Ringkasan operasional harian 68/70 mesin, FIFO assembly, QC pool
+    - ORDER_APPROVAL: Quick action tombol setujui / tolak pesanan massal untuk Owner
+    - CLIENT_PROGRESS: Visual progress bar pesanan untuk klien B2B
+    - CUSTOM: Notifikasi bebas
+    """
+    try:
+        if req.event_type == "FACTORY_PULSE":
+            pulse_text = telegram_bot.format_factory_pulse()
+            return telegram_bot.send_message(chat_id=req.chat_id, text=pulse_text)
+
+        elif req.event_type == "ORDER_APPROVAL":
+            return telegram_bot.send_order_approval_request(
+                order_id=req.order_id or "ORD-2026-004",
+                client_name=req.client_name or "Snøhund",
+                article_name=req.article_name or "Winter Parka V2",
+                quantity=req.quantity or 500,
+                scheme=req.scheme or "SEMI_CMT",
+                chat_id=req.chat_id
+            )
+
+        elif req.event_type == "CLIENT_PROGRESS":
+            progress_text = telegram_bot.format_client_status(order_id=req.order_id or "ORD-2026-004")
+            return telegram_bot.send_message(chat_id=req.chat_id, text=progress_text)
+
+        elif req.event_type == "CUSTOM":
+            if not req.custom_message:
+                raise HTTPException(status_code=400, detail="custom_message wajib diisi.")
+            return telegram_bot.send_message(chat_id=req.chat_id, text=req.custom_message)
+
+        else:
+            raise HTTPException(status_code=400, detail=f"event_type '{req.event_type}' tidak dikenali.")
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Gagal mengirim notifikasi Telegram: {str(e)}")
 
 
 if __name__ == "__main__":

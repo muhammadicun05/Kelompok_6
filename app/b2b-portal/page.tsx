@@ -17,7 +17,7 @@ const PHASES = [
   { num: 1, name: "Sampel & Studi Waktu (SMV)", status: "COMPLETED", date: "10 Okt" },
   { num: 2, name: "Persetujuan Pesanan & PO Komitmen", status: "COMPLETED", date: "12 Okt" },
   { num: 3, name: "Gudang & Penerimaan Kain Titipan", status: "COMPLETED", date: "13 Okt" },
-  { num: 4, name: "Lini Jahit (±70 Mesin Aktif)", status: "IN_PROGRESS", date: "Sedang Berjalan (65%)" },
+  { num: 4, name: "Lini Jahit & Assembly", status: "IN_PROGRESS", date: "Sedang Berjalan (65%)" },
   { num: 5, name: "Inspeksi QC Produk Utuh", status: "WAITING", date: "Menunggu Selesai Jahit" },
   { num: 6, name: "Pengiriman & Rekapitulasi Akhir", status: "WAITING", date: "Target 20 Okt" },
 ];
@@ -36,7 +36,7 @@ export default function B2bPortalPage() {
           <div className="flex items-center gap-2">
             <ClientTag clientCode="KLIEN_A" clientName="PT Bandung Apparel Eksklusif" />
             <span className="text-xs px-2 py-0.5 rounded bg-kabut font-semibold text-teks-sekunder">
-              Portal B2B Maklon Eksternal
+              Portal Klien B2B
             </span>
           </div>
           <h1 className="text-2xl font-bold text-celup-indigo tracking-tight mt-1">
@@ -50,7 +50,7 @@ export default function B2bPortalPage() {
         <div className="flex items-center gap-2 self-start">
           <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-field bg-white border border-garis text-status-lolos text-xs font-bold shadow-sm">
             <ShieldCheck className="w-4 h-4 text-status-lolos" />
-            <span>Terisolasi Aman (Multi-Tenant RLS)</span>
+            <span>Akses Terverifikasi</span>
           </span>
         </div>
       </div>

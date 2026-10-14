@@ -51,8 +51,6 @@ export default function SamplesPage() {
     },
   ]);
 
-  const [convertedOrder, setConvertedOrder] = useState<any | null>(null);
-  const [selectedScheme, setSelectedScheme] = useState("SEMI_CMT");
 
   // Intake Klaim / Spesifikasi Sampel Klien oleh Tim Sampler
   const [showClaimForm, setShowClaimForm] = useState(false);
@@ -120,6 +118,11 @@ export default function SamplesPage() {
     return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
   };
 
+  const [convertedOrder, setConvertedOrder] = useState<any | null>(null);
+  const [ownerApprovalStatus, setOwnerApprovalStatus] = useState<"PENDING" | "APPROVED" | "REJECTED">("PENDING");
+  const [isClientAccountActive, setIsClientAccountActive] = useState<boolean>(false);
+  const [selectedScheme, setSelectedScheme] = useState("SEMI_CMT");
+
   const handleConvertToMassOrder = () => {
     setConvertedOrder({
       orderNumber: `ORD-2026-004`,
@@ -129,8 +132,10 @@ export default function SamplesPage() {
       inheritedVersion: "v2",
       inheritedSmv: "11m 00s",
       inheritedFabric: "1.85 yard/pcs",
-      status: "CONFIRMED",
+      status: "PENDING_OWNER_APPROVAL",
     });
+    setOwnerApprovalStatus("PENDING");
+    setIsClientAccountActive(false);
   };
 
   return (
@@ -363,12 +368,27 @@ export default function SamplesPage() {
             </div>
           </div>
 
-          {/* Mass Order Converted Result Card (UAT-04 verification) */}
+          {/* Mass Order Converted Result Card (UAT-04 verification & BRD v1.5) */}
           {convertedOrder && (
-            <div className="bg-white p-5 rounded-work border-2 border-status-lolos shadow-hard space-y-3">
-              <div className="flex items-center gap-2 text-status-lolos font-bold text-sm">
-                <FileCheck className="w-5 h-5" />
-                <span>Pesanan Massal Berhasil Diterbitkan dari {convertedOrder.inheritedVersion}!</span>
+            <div className="bg-white p-5 rounded-work border-2 border-status-lolos shadow-hard space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-garis pb-2">
+                <div className="flex items-center gap-2 text-status-lolos font-bold text-sm">
+                  <FileCheck className="w-5 h-5 flex-shrink-0" />
+                  <span>Pesanan Massal Berhasil Diterbitkan dari {convertedOrder.inheritedVersion}!</span>
+                </div>
+                <span className={`text-[11px] font-bold px-2 py-0.5 rounded border self-start sm:self-auto ${
+                  ownerApprovalStatus === "APPROVED"
+                    ? "bg-status-lolos/10 text-status-lolos border-status-lolos"
+                    : ownerApprovalStatus === "REJECTED"
+                    ? "bg-status-cacat/10 text-status-cacat border-status-cacat"
+                    : "bg-status-perbaikan/10 text-status-perbaikan border-status-perbaikan"
+                }`}>
+                  {ownerApprovalStatus === "APPROVED"
+                    ? "Status: Disetujui Owner (Approved/Accepted)"
+                    : ownerApprovalStatus === "REJECTED"
+                    ? "Status: Ditolak Owner (Rejected by Owner)"
+                    : "Status: Menunggu Keputusan Owner (Pending Approval)"}
+                </span>
               </div>
 
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-kabut p-3 rounded text-xs">
@@ -390,8 +410,81 @@ export default function SamplesPage() {
                 </div>
               </div>
 
+              {/* Owner Approval Gate (BRD v1.5: Owner Satu-Satunya Approver Sistem) */}
+              <div className="p-3 bg-lembar border border-garis rounded-field text-xs space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-celup-indigo">Persetujuan Bisnis Owner:</span>
+                  <span className="text-[11px] text-teks-sekunder">Wewenang Tunggal Sistem</span>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => {
+                      setOwnerApprovalStatus("APPROVED");
+                      alert(`Order ${convertedOrder.orderNumber} telah disetujui oleh Owner! Tahap persiapan material dan produksi diizinkan dimulai.`);
+                    }}
+                    className={`flex-1 py-1.5 px-3 rounded font-bold text-xs transition-all ${
+                      ownerApprovalStatus === "APPROVED"
+                        ? "bg-status-lolos text-white shadow-sm"
+                        : "bg-white border border-status-lolos text-status-lolos hover:bg-status-lolos hover:text-white"
+                    }`}
+                  >
+                    ✓ Setujui Order (Owner Approval)
+                  </button>
+                  <button
+                    onClick={() => {
+                      setOwnerApprovalStatus("REJECTED");
+                      alert(`Order ${convertedOrder.orderNumber} ditolak oleh Owner. Produksi tidak dapat dimulai.`);
+                    }}
+                    className={`py-1.5 px-3 rounded font-bold text-xs transition-all ${
+                      ownerApprovalStatus === "REJECTED"
+                        ? "bg-status-cacat text-white shadow-sm"
+                        : "bg-white border border-status-cacat text-status-cacat hover:bg-status-cacat hover:text-white"
+                    }`}
+                  >
+                    ✕ Tolak Order
+                  </button>
+                </div>
+              </div>
+
+              {/* Provisioning Akun Portal Klien oleh Sampler (BRD v1.5 Section 5.2.5) */}
+              <div className="p-3 bg-white border border-garis rounded-field text-xs space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-celup-indigo">Aktivasi Akun Portal Klien:</span>
+                  <span className="text-[11px] text-teks-sekunder">Dikelola oleh Tim Sampler</span>
+                </div>
+                
+                {isClientAccountActive ? (
+                  <div className="p-2 bg-status-lolos/10 border border-status-lolos/30 rounded text-status-lolos font-semibold flex items-center gap-1.5">
+                    <Check className="w-4 h-4 flex-shrink-0" />
+                    <span>Akun Portal Klien Aktif! Klien kini dapat login ke Portal B2B untuk melacak pesanan {convertedOrder.orderNumber}.</span>
+                  </div>
+                ) : (
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <p className="text-[11px] text-teks-sekunder">
+                      {ownerApprovalStatus === "APPROVED"
+                        ? "Order telah disetujui Owner. Akun login portal siap diaktifkan untuk klien."
+                        : "Akun login portal baru dapat diaktifkan setelah order disetujui oleh Owner."}
+                    </p>
+                    <button
+                      disabled={ownerApprovalStatus !== "APPROVED"}
+                      onClick={() => {
+                        setIsClientAccountActive(true);
+                        alert(`Akun Portal Klien untuk pesanan ${convertedOrder.orderNumber} berhasil diaktifkan oleh Tim Sampler!`);
+                      }}
+                      className={`px-3.5 py-1.5 rounded font-bold text-xs transition-all whitespace-nowrap ${
+                        ownerApprovalStatus === "APPROVED"
+                          ? "bg-celup-indigo text-white shadow-hard hover:bg-celup-indigo/90"
+                          : "bg-kabut text-teks-sekunder border border-garis cursor-not-allowed"
+                      }`}
+                    >
+                      {ownerApprovalStatus === "APPROVED" ? "✨ Aktifkan Akun Portal Klien" : "🔒 Terkunci (Menunggu Approval Owner)"}
+                    </button>
+                  </div>
+                )}
+              </div>
+
               <p className="text-xs text-teks-sekunder">
-                Sesuai <strong>UAT-04</strong>: Pesanan massal mewarisi seluruh spesifikasi BOM dan studi waktu dari versi disetujui (v2), sementara riwayat v1 tetap tersimpan utuh di sistem.
+                Sesuai <strong>UAT-04</strong> & <strong>BRD v1.5</strong>: Pesanan massal mewarisi seluruh spesifikasi BOM dan studi waktu dari versi disetujui (v2), riwayat v1 tersimpan, dan akun portal klien hanya aktif setelah approval Owner.
               </p>
             </div>
           )}

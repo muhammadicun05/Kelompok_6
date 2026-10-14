@@ -23,6 +23,31 @@ export default function WarehousePage() {
   const [qtyToIssue, setQtyToIssue] = useState<number>(50);
   const [filterClient, setFilterClient] = useState<string>("ALL");
   const [loading, setLoading] = useState(true);
+  const [warehouseTab, setWarehouseTab] = useState<"INVENTORY" | "CUTTING">("INVENTORY");
+  const [cuttingBatches, setCuttingBatches] = useState([
+    {
+      id: "CUT-2026-001",
+      orderNumber: "ORD-2026-001",
+      clientName: "Snøhund Alpine Wear",
+      material: "Taslan Milky #K-01 (Hitam)",
+      componentSet: "Badan Depan, Belakang, Lengan, Kantong",
+      qtyCutSets: 150,
+      cutDate: "14 Okt 2026, 09:30",
+      status: "Siap Dijahit Operator",
+    },
+    {
+      id: "CUT-2026-002",
+      orderNumber: "ORD-2026-002",
+      clientName: "PT Bandung Apparel",
+      material: "Parasut Ribstop #P-04 (Navy)",
+      componentSet: "Badan, Lengan, Tudung Kepala, Saku Zipper",
+      qtyCutSets: 100,
+      cutDate: "14 Okt 2026, 11:15",
+      status: "Siap Dijahit Operator",
+    },
+  ]);
+  const [newCutOrder, setNewCutOrder] = useState<string>("ORD-2026-001");
+  const [newCutQty, setNewCutQty] = useState<number>(50);
 
   // Anti-Contamination Modal State (FR-6.2 & UAT-01)
   const [blockModal, setBlockModal] = useState<{
@@ -150,10 +175,10 @@ export default function WarehousePage() {
       <div className="border-b border-garis pb-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
         <div>
           <h1 className="text-xl sm:text-2xl font-bold text-celup-indigo tracking-tight">
-            Fase 3: Gudang Multi-Tenant & Anti-Kontaminasi (Operasional Cutting)
+            Gudang Multi-Tenant & Anti-Kontaminasi
           </h1>
           <p className="text-xs text-teks-sekunder mt-0.5">
-            FR-6.1 Mandatory Tagging Klien • Pemotongan Kain (Cutting) Dilakukan oleh Tim Gudang • FR-6.2 Blokir Silang
+            FR-6.1 Mandatory Tagging Klien • Stasiun Meja Potong (Cutting) • FR-6.2 Validasi Pintu Cutting
           </p>
         </div>
 
@@ -166,6 +191,30 @@ export default function WarehousePage() {
         </button>
       </div>
 
+      {/* 2 Stasiun Kerja: Inventaris vs Meja Potong (Cutting Station) - Opsi A */}
+      <div className="flex gap-2 border-b border-garis pb-1 overflow-x-auto">
+        <button
+          onClick={() => setWarehouseTab("INVENTORY")}
+          className={`px-4 py-2 text-xs font-bold rounded-field transition-all whitespace-nowrap ${
+            warehouseTab === "INVENTORY"
+              ? "bg-celup-indigo text-white shadow-sm"
+              : "bg-white text-teks-sekunder hover:text-celup-indigo border border-garis"
+          }`}
+        >
+          1. Penerimaan & Stok Bahan (Validasi Tag Klien)
+        </button>
+        <button
+          onClick={() => setWarehouseTab("CUTTING")}
+          className={`px-4 py-2 text-xs font-bold rounded-field transition-all whitespace-nowrap ${
+            warehouseTab === "CUTTING"
+              ? "bg-celup-indigo text-white shadow-sm"
+              : "bg-white text-teks-sekunder hover:text-celup-indigo border border-garis"
+          }`}
+        >
+          2. Meja Potong (Cutting Station)
+        </button>
+      </div>
+
       {/* Operational Cutting by Warehouse Banner */}
       <div className="p-3 bg-white border-l-4 border-status-lolos rounded-field shadow-hard text-xs text-tinta flex items-start gap-2.5">
         <CheckCircle2 className="w-4 h-4 text-status-lolos flex-shrink-0 mt-0.5" />
@@ -175,19 +224,21 @@ export default function WarehousePage() {
         </div>
       </div>
 
-      {/* Interactive Material Issue Bar (Simulasi QR Scanner & Pintu Cutting) */}
-      <div className="bg-lembar p-5 rounded-work border-2 border-celup-indigo shadow-hard space-y-4">
-        <div className="flex items-center justify-between border-b border-garis pb-2">
-          <div className="flex items-center gap-2">
-            <QrCode className="w-5 h-5 text-celup-indigo" />
-            <h2 className="text-sm font-bold text-celup-indigo">
-              Terminal Pengeluaran Bahan ke Area Cutting
-            </h2>
-          </div>
-          <span className="text-[11px] font-semibold text-status-lolos bg-white px-2 py-0.5 rounded border border-garis">
-            Proteksi Anti-Kontaminasi Otomatis (FR-6.2)
-          </span>
-        </div>
+      {warehouseTab === "INVENTORY" && (
+        <>
+          {/* Interactive Material Issue Bar (Simulasi QR Scanner & Pintu Cutting) */}
+          <div className="bg-lembar p-5 rounded-work border-2 border-celup-indigo shadow-hard space-y-4">
+            <div className="flex items-center justify-between border-b border-garis pb-2">
+              <div className="flex items-center gap-2">
+                <QrCode className="w-5 h-5 text-celup-indigo" />
+                <h2 className="text-sm font-bold text-celup-indigo">
+                  Terminal Pengeluaran Bahan ke Area Cutting
+                </h2>
+              </div>
+              <span className="text-[11px] font-semibold text-status-lolos bg-white px-2 py-0.5 rounded border border-garis">
+                Proteksi Anti-Kontaminasi Otomatis (FR-6.2)
+              </span>
+            </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           {/* Select Material */}
@@ -390,6 +441,134 @@ export default function WarehousePage() {
           </table>
         </div>
       </div>
+      </>
+      )}
+
+      {/* STASIUN MEJA POTONG (CUTTING STATION) - OPSI A & BRD v1.5 */}
+      {warehouseTab === "CUTTING" && (
+        <div className="space-y-6">
+          <div className="p-4 bg-lembar rounded-work border-2 border-celup-indigo shadow-hard space-y-4">
+            <div className="flex items-center justify-between border-b border-garis pb-2">
+              <div className="flex items-center gap-2">
+                <Package className="w-5 h-5 text-celup-indigo" />
+                <h2 className="text-sm font-bold text-celup-indigo">
+                  Pencatatan Pemotongan Pola Kain (Cutting Station)
+                </h2>
+              </div>
+              <span className="text-[11px] font-semibold text-status-lolos bg-white px-2 py-0.5 rounded border border-garis">
+                Petugas Cutting • Verifikasi Bebas Kontaminasi
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div>
+                <label className="text-xs font-semibold text-tinta block mb-1">
+                  Target Order Pesanan:
+                </label>
+                <select
+                  value={newCutOrder}
+                  onChange={(e) => setNewCutOrder(e.target.value)}
+                  className="w-full text-xs border border-garis bg-white p-2.5 rounded-field font-medium text-tinta"
+                >
+                  {orders.map((o) => (
+                    <option key={o.id} value={o.order_number}>
+                      {o.order_number} — {o.article_name} ({o.clients?.name})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold text-tinta block mb-1">
+                  Bahan Baku yang Digunakan:
+                </label>
+                <div className="p-2.5 bg-white border border-garis rounded-field text-xs font-medium text-tinta">
+                  Taslan Milky / Parasut (Tervalidasi FR-6.2)
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold text-tinta block mb-1">
+                  Jumlah Set Potong Selesai:
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="number"
+                    min="1"
+                    value={newCutQty}
+                    onChange={(e) => setNewCutQty(Number(e.target.value))}
+                    className="w-24 text-xs border border-garis bg-white p-2.5 rounded-field font-bold text-celup-indigo"
+                  />
+                  <button
+                    onClick={() => {
+                      const newBatch = {
+                        id: `CUT-2026-00${cuttingBatches.length + 1}`,
+                        orderNumber: newCutOrder,
+                        clientName: "Snøhund / Klien B2B",
+                        material: "Kain Tervalidasi",
+                        componentSet: "Pola Lengkap (Badan, Lengan, Kantong, Rib)",
+                        qtyCutSets: newCutQty,
+                        cutDate: "Baru saja",
+                        status: "Siap Dijahit Operator",
+                      };
+                      setCuttingBatches([newBatch, ...cuttingBatches]);
+                      alert(`Hasil potong ${newCutQty} set pola untuk ${newCutOrder} berhasil dicatat & diteruskan ke Penjahit-Operator!`);
+                    }}
+                    className="flex-1 px-3 py-2 bg-celup-indigo text-white text-xs font-bold rounded-field shadow-hard hover:bg-celup-indigo/90"
+                  >
+                    Kirim ke Penjahit-Operator →
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-work border border-garis shadow-hard p-4 space-y-3">
+            <div className="flex items-center justify-between border-b border-garis pb-2">
+              <h3 className="text-xs font-bold text-celup-indigo uppercase tracking-wider">
+                Daftar Batch Hasil Potong di Meja Cutting (WIP Siap Jahit)
+              </h3>
+              <span className="text-[11px] text-teks-sekunder">
+                Total {cuttingBatches.length} Batch Dipotong
+              </span>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs text-left">
+                <thead className="bg-kabut text-tinta font-bold border-b border-garis">
+                  <tr>
+                    <th className="py-2.5 px-3">Batch ID</th>
+                    <th className="py-2.5 px-2">Order & Klien</th>
+                    <th className="py-2.5 px-2">Material Kain</th>
+                    <th className="py-2.5 px-2">Komponen Pola</th>
+                    <th className="py-2.5 px-2 text-right">Jumlah Set</th>
+                    <th className="py-2.5 px-3 text-right">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-garis">
+                  {cuttingBatches.map((b) => (
+                    <tr key={b.id} className="hover:bg-lembar">
+                      <td className="py-2.5 px-3 font-mono font-bold text-celup-indigo">{b.id}</td>
+                      <td className="py-2.5 px-2">
+                        <span className="font-bold text-tinta block">{b.orderNumber}</span>
+                        <span className="text-[10px] text-teks-sekunder">{b.clientName}</span>
+                      </td>
+                      <td className="py-2.5 px-2 text-teks-sekunder">{b.material}</td>
+                      <td className="py-2.5 px-2 text-tinta font-medium">{b.componentSet}</td>
+                      <td className="py-2.5 px-2 text-right font-mono font-bold text-status-lolos">{b.qtyCutSets} set</td>
+                      <td className="py-2.5 px-3 text-right">
+                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-status-lolos/10 text-status-lolos border border-status-lolos/20">
+                          {b.status}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Audit Logs of Anti-Contamination Incidents */}
       <div className="bg-white p-4 rounded-work border border-garis shadow-hard">

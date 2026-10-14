@@ -88,7 +88,7 @@ export default function DashboardPage() {
             Dashboard Operasional Pabrik
           </h1>
           <p className="text-xs text-teks-sekunder mt-0.5">
-            Lantai Produksi Ciwidey • Kapasitas Dinamis ±70 Mesin Jahit Aktif
+            Monitoring Kapasitas: {stats.activeMachines} / {stats.totalMachines} Mesin Aktif
           </p>
         </div>
 
@@ -125,7 +125,7 @@ export default function DashboardPage() {
             <span className="text-xs text-teks-sekunder">/ {stats.totalMachines} mesin</span>
           </div>
           <div className="mt-2 text-[11px] text-teks-sekunder">
-            Alokasi cair lintas lini A, B, C
+            Lini Produksi A, B, dan C
           </div>
         </div>
 
@@ -245,7 +245,7 @@ export default function DashboardPage() {
           <div className="bg-lembar rounded-work border border-garis p-4 shadow-hard">
             <div className="flex items-center justify-between mb-3 border-b border-garis pb-2">
               <h2 className="text-sm font-bold text-celup-indigo">
-                Status Kecepatan Lini Produksi (±70 Mesin)
+                Status Kecepatan Lini Produksi
               </h2>
               <span className="text-xs text-teks-sekunder">Monitoring 30 Menit</span>
             </div>
@@ -264,7 +264,7 @@ export default function DashboardPage() {
               </div>
 
               <div className="bg-white p-3 rounded-field border border-garis">
-                <span className="text-xs text-teks-sekunder font-medium block">Lini C (Ekspansi & Cutting)</span>
+                <span className="text-xs text-teks-sekunder font-medium block">Lini C (Cadangan & Tambahan)</span>
                 <span className="text-lg font-bold text-celup-indigo tabular-nums">Mesin #46 - #70</span>
                 <div className="mt-1 text-xs text-status-perbaikan font-semibold">▲ Penambahan Penjahit Baru</div>
               </div>
