@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ question, role, client_id: clientId }),
-        signal: AbortSignal.timeout(2000), // Quick timeout to prevent UI lag if python service is offline
+        signal: AbortSignal.timeout(5000), // Sufficient timeout for RAG microservice response
       });
 
       if (response.ok) {

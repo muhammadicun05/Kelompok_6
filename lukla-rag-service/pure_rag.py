@@ -15,6 +15,8 @@ from dotenv import load_dotenv
 from supabase import create_client, Client
 
 load_dotenv()
+load_dotenv(os.path.join(os.path.dirname(__file__), "..", ".env.local"))
+load_dotenv(os.path.join(os.path.dirname(__file__), ".env"))
 
 AWS_ACCESS_KEY = os.getenv("AWS_ACCESS_KEY")
 AWS_SECRET_ACCESS = os.getenv("AWS_SECRET_ACCESS")
@@ -25,8 +27,8 @@ EMBED_MODEL_ID = os.getenv("BEDROCK_EMBEDDING_MODEL_ID", "amazon.titan-embed-tex
 LLM_REGION = os.getenv("BEDROCK_LLM_REGION", "ap-southeast-1")
 LLM_MODEL_ID = os.getenv("BEDROCK_LLM_MODEL_ID", "amazon.nova-lite-v1:0")
 
-SUPABASE_URL = os.getenv("SUPABASE_URL", "https://wrugjojtvgkuwjqopete.supabase.co")
-SUPABASE_SERVICE_ROLE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "")
+SUPABASE_URL = os.getenv("NEXT_PUBLIC_SUPABASE_URL") or os.getenv("SUPABASE_URL") or "https://wrugjojtvgkuwjqopete.supabase.co"
+SUPABASE_SERVICE_ROLE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY") or os.getenv("NEXT_PUBLIC_SUPABASE_ANON_KEY") or ""
 
 
 class PureRAGEngine:

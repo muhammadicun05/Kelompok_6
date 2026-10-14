@@ -21,7 +21,8 @@ from supabase import create_client, Client
 import boto3
 
 load_dotenv()
-load_dotenv(".env.local")
+load_dotenv(os.path.join(os.path.dirname(__file__), "..", ".env.local"))
+load_dotenv(os.path.join(os.path.dirname(__file__), ".env"))
 
 # Supabase Credentials
 SUPABASE_URL = os.getenv("NEXT_PUBLIC_SUPABASE_URL") or os.getenv("SUPABASE_URL") or "https://wrugjojtvgkuwjqopete.supabase.co"
@@ -265,9 +266,10 @@ class LuklaAgentTools:
 
         if any(w in clean_q for w in ["gaji", "upah", "borongan", "clawback"]):
             answer = (
-                "Gaji borongan penjahit dan tim cutting TIDAK terpengaruh oleh hasil inspeksi QC (no clawback). "
+                "Gaji borongan penjahit dan tim cutting TIDAK terpengaruh oleh status QC maupun hasil inspeksi (*no clawback*). "
                 "Status Repair atau Reject di QC tidak memotong upah penjahit sama sekali. "
-                "Upah dihitung murni dari output 30 menit yang telah berstatus 'Verified' oleh Mandor dikalikan Rate Card komponen."
+                "Upah dihitung murni dari output 30 menit yang telah berstatus 'Verified' oleh Mandor dikalikan Rate Card komponen. "
+                "Hasil QC hanya berpengaruh terhadap saldo Pool Bonus QC bagi para supervisor."
             )
             citations.append({"source": "Business Requirement Document (BRD)_V3.md", "text": "FR-10.1 & Asumsi #1: No Clawback Gaji"})
         elif any(w in clean_q for w in ["bonus", "pool"]):
@@ -417,8 +419,10 @@ class AgenticWorkflowEngine:
     def __init__(self, supabase_client: Optional[Client] = None):
         if supabase_client:
             self.supabase = supabase_client
-        else:
+        elif SUPABASE_URL and SUPABASE_KEY:
             self.supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+        else:
+            self.supabase = None
         self.tools = LuklaAgentTools(self.supabase)
 
     def run(self, question: str, role: Optional[str] = None, client_id: Optional[str] = None, max_iterations: int = 5) -> Dict[str, Any]:

@@ -15,6 +15,8 @@ from pure_rag import PureRAGEngine
 from rag_agent import AgenticWorkflowEngine
 
 load_dotenv()
+load_dotenv(os.path.join(os.path.dirname(__file__), "..", ".env.local"))
+load_dotenv(os.path.join(os.path.dirname(__file__), ".env"))
 
 app = FastAPI(
     title="Lukla Operations Engine — Pure Manual RAG & Agentic Service",
@@ -121,23 +123,15 @@ def ask_question(req: AskRequest):
             return AskResponse(**result)
 
         # 3. Fallback cerdas: Jika belum ada embeddings di database atau AWS belum diisi secret
-        # baca dokumen lokal docs/ agar frontend tidak crash saat demo lokal
-        fallback_answer = (
-            "Berdasarkan dokumen resmi Lukla Operations Engine:\n\n"
-            "- Pabrik beroperasi di Ciwidey dengan kapasitas ±70 mesin jahit aktif.\n"
-            "- Sistem mendukung 3 skema maklon: CMT, Semi-CMT, dan Full Package (standar Snøhund).\n"
-            "- Aturan Anti-Kontaminasi (FR-6.2) memblokir pengeluaran bahan jika Tag ID Klien dan ID Pesanan tidak cocok.\n"
-            "- Penggajian borongan dihitung setiap hari Sabtu dari output 30 menit yang telah diverifikasi Mandor.\n"
-            "- Uang makan (10–15%) masuk sebagai tunjangan tunai ke slip gaji.\n"
-            "- Bonus QC dibagi rata kepada 2 Mandor dan 1 Kepala Operasional (dengan opsi dinamis jika Mandor > 2)."
-        )
+        # baca repositori aturan resmi Lukla (10 Asumsi, SOP Gudang, Penggajian) agar frontend tidak crash saat demo lokal
+        knowledge_res = agent_engine.tools.answer_knowledge_question(req.question, req.role)
+        citations_list = [
+            CitationItem(source=c.get("source", "Lukla Knowledge Base"), text=c.get("text", ""), similarity=c.get("similarity"))
+            for c in knowledge_res.get("citations", [])
+        ]
         return AskResponse(
-            answer=fallback_answer,
-            citations=[{
-                "source": "PRD_Lukla_Operations_Engine.md",
-                "text": "Ringkasan 10 Asumsi & Aturan Bisnis Resmi Lukla Operations Engine",
-                "similarity": 0.95
-            }]
+            answer=knowledge_res.get("answer", ""),
+            citations=citations_list
         )
 
     except Exception as e:
