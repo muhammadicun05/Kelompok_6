@@ -14,7 +14,9 @@ import {
   FileText,
   CreditCard,
   Download,
-  AlertCircle
+  AlertCircle,
+  Search,
+  X
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 
@@ -27,6 +29,8 @@ export default function PayrollPage() {
   const [monthlyOverhead, setMonthlyOverhead] = useState<number>(18500000); // Rp 18.5jt overhead
   const [estimatedMonthlyUnits, setEstimatedMonthlyUnits] = useState<number>(6000);
   const [periodCode, setPeriodCode] = useState<string>("PAY-2026-W41");
+  const [workerSearch, setWorkerSearch] = useState<string>("");
+  const [roleFilter, setRoleFilter] = useState<string>("ALL");
   const [payrollSummary, setPayrollSummary] = useState<any | null>(null);
   const [payrollItems, setPayrollItems] = useState<any[]>([
     {
@@ -193,6 +197,41 @@ export default function PayrollPage() {
 
   const overheadPerUnit = Math.round(monthlyOverhead / (estimatedMonthlyUnits || 1));
 
+  const filteredPayrollItems = payrollItems.filter((it) => {
+    if (roleFilter !== "ALL") {
+      if (roleFilter === "MANDOR" && it.worker_role !== "PRODUCTION_HEAD_MANDOR") return false;
+      if (roleFilter !== "MANDOR" && it.worker_role !== roleFilter) return false;
+    }
+    if (workerSearch.trim()) {
+      const q = workerSearch.toLowerCase();
+      const matchName = it.user_profiles?.full_name?.toLowerCase().includes(q);
+      const matchRole = it.worker_role?.toLowerCase().includes(q);
+      if (!matchName && !matchRole) return false;
+    }
+    return true;
+  });
+
+  const exportPayrollCsv = () => {
+    const headers = ["Nama Karyawan", "Posisi", "Output Terverifikasi (pcs)", "Upah Borongan (Rp)", `Uang Makan (${mealPct}% Tunai)`, "Bonus QC 3-Arah (Rp)", "Total Take Home Pay (Rp)"];
+    const rows = filteredPayrollItems.map(it => [
+      `"${it.user_profiles?.full_name || 'Karyawan'}"`,
+      `"${it.worker_role}"`,
+      it.verified_output_pcs,
+      it.piece_rate_subtotal,
+      it.meal_allowance_cash,
+      it.qc_bonus_received,
+      it.take_home_pay
+    ]);
+    const csvContent = "data:text/csv;charset=utf-8," + [headers.join(","), ...rows.map(r => r.join(","))].join("\n");
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `rekap-gaji-sabtu-${periodCode}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -338,7 +377,7 @@ export default function PayrollPage() {
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
             {/* Table of Saturday Wages (7 cols) */}
             <div className="lg:col-span-7 bg-lembar p-5 rounded-work border border-garis shadow-hard space-y-4">
-              <div className="flex items-center justify-between border-b border-garis pb-2">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-garis pb-2 gap-2">
                 <div>
                   <h2 className="text-sm font-bold text-celup-indigo">
                     Rekapitulasi Penggajian Hari Sabtu (UAT-02 & UAT-03)
@@ -347,9 +386,82 @@ export default function PayrollPage() {
                     Termasuk Penjahit-Operator, Penjahit-Assembly, dan Penjahit Baru
                   </span>
                 </div>
-                <span className="text-xs font-mono font-bold text-status-lolos bg-white px-2 py-0.5 rounded border border-garis">
-                  Status: Dihitung Sah
-                </span>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={exportPayrollCsv}
+                    className="px-2.5 py-1 bg-white hover:bg-kabut border border-garis text-celup-indigo font-bold text-xs rounded shadow-sm flex items-center gap-1 transition-all"
+                    title="Unduh rekapitulasi penggajian Sabtu ke format CSV / Excel"
+                  >
+                    <Download className="w-3.5 h-3.5 text-celup-indigo" />
+                    <span>Ekspor CSV</span>
+                  </button>
+                  <span className="text-xs font-mono font-bold text-status-lolos bg-white px-2 py-0.5 rounded border border-garis">
+                    Status: Dihitung Sah
+                  </span>
+                </div>
+              </div>
+
+              {/* Worker Search & Role Category Pills */}
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 pt-1">
+                {/* Search Box */}
+                <div className="relative flex-1 max-w-xs">
+                  <Search className="w-3.5 h-3.5 text-teks-sekunder absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <input
+                    type="text"
+                    value={workerSearch}
+                    onChange={(e) => setWorkerSearch(e.target.value)}
+                    placeholder="Cari nama karyawan / penjahit..."
+                    className="w-full text-xs pl-8 pr-7 py-1.5 bg-white border border-garis rounded-field text-tinta placeholder:text-teks-sekunder focus:outline-none focus:border-celup-indigo"
+                  />
+                  {workerSearch && (
+                    <button
+                      onClick={() => setWorkerSearch("")}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-teks-sekunder hover:text-celup-indigo"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  )}
+                </div>
+
+                {/* Role Filter Pills */}
+                <div className="flex bg-white p-0.5 rounded-field border border-garis text-[10px] font-bold">
+                  <button
+                    type="button"
+                    onClick={() => setRoleFilter("ALL")}
+                    className={`px-2 py-1 rounded transition-all ${
+                      roleFilter === "ALL" ? "bg-celup-indigo text-white shadow-sm" : "text-teks-sekunder hover:text-celup-indigo"
+                    }`}
+                  >
+                    Semua ({payrollItems.length})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setRoleFilter("TAILOR_OPERATOR")}
+                    className={`px-2 py-1 rounded transition-all ${
+                      roleFilter === "TAILOR_OPERATOR" ? "bg-celup-indigo text-white shadow-sm" : "text-teks-sekunder hover:text-celup-indigo"
+                    }`}
+                  >
+                    Operator
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setRoleFilter("TAILOR_ASSEMBLY")}
+                    className={`px-2 py-1 rounded transition-all ${
+                      roleFilter === "TAILOR_ASSEMBLY" ? "bg-celup-indigo text-white shadow-sm" : "text-teks-sekunder hover:text-celup-indigo"
+                    }`}
+                  >
+                    Assembly
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setRoleFilter("MANDOR")}
+                    className={`px-2 py-1 rounded transition-all ${
+                      roleFilter === "MANDOR" ? "bg-celup-indigo text-white shadow-sm" : "text-teks-sekunder hover:text-celup-indigo"
+                    }`}
+                  >
+                    Mandor
+                  </button>
+                </div>
               </div>
 
               <div className="overflow-x-auto">
@@ -365,7 +477,7 @@ export default function PayrollPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-garis">
-                    {payrollItems.map((it) => {
+                    {filteredPayrollItems.map((it) => {
                       const isSelected = selectedSlipWorker?.id === it.id;
                       const fullName = it.user_profiles?.full_name || "Karyawan";
 

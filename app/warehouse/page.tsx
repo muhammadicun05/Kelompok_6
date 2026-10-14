@@ -9,11 +9,14 @@ import {
   AlertOctagon, 
   ArrowRight,
   Filter,
-  RefreshCw
+  RefreshCw,
+  Download,
+  Scissors
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { ThreadEdge, ClientTag, getClientMonogram } from "@/components/Design/ThreadEdge";
 import { AntiContaminationModal } from "@/components/Warehouse/AntiContaminationModal";
+import { UniversalFilterBar, FilterState } from "@/components/Design/UniversalFilterBar";
 
 export default function WarehousePage() {
   const [items, setItems] = useState<any[]>([]);
@@ -21,7 +24,13 @@ export default function WarehousePage() {
   const [selectedItem, setSelectedItem] = useState<any | null>(null);
   const [selectedOrderId, setSelectedOrderId] = useState<string>("");
   const [qtyToIssue, setQtyToIssue] = useState<number>(50);
-  const [filterClient, setFilterClient] = useState<string>("ALL");
+  const [filter, setFilter] = useState<FilterState>({
+    searchQuery: "",
+    clientCode: "ALL",
+    startDate: "",
+    endDate: "",
+    datePreset: "ALL",
+  });
   const [loading, setLoading] = useState(true);
   const [warehouseTab, setWarehouseTab] = useState<"INVENTORY" | "CUTTING">("INVENTORY");
   const [cuttingBatches, setCuttingBatches] = useState([
@@ -165,9 +174,40 @@ export default function WarehousePage() {
   };
 
   const filteredItems = items.filter((it) => {
-    if (filterClient === "ALL") return true;
-    return it.clients?.client_code === filterClient;
+    if (filter.clientCode !== "ALL" && it.clients?.client_code !== filter.clientCode) {
+      return false;
+    }
+    if (filter.searchQuery) {
+      const q = filter.searchQuery.toLowerCase();
+      const matchName = it.item_name?.toLowerCase().includes(q);
+      const matchCat = it.category?.toLowerCase().includes(q);
+      const matchClient = it.clients?.name?.toLowerCase().includes(q);
+      if (!matchName && !matchCat && !matchClient) return false;
+    }
+    return true;
   });
+
+  const exportCuttingCsv = () => {
+    const headers = ["Batch ID", "No. Order", "Klien", "Material", "Set Komponen", "Jumlah Set", "Tanggal Potong", "Status"];
+    const rows = cuttingBatches.map(b => [
+      b.id,
+      b.orderNumber,
+      `"${b.clientName}"`,
+      `"${b.material}"`,
+      `"${b.componentSet}"`,
+      b.qtyCutSets,
+      `"${b.cutDate}"`,
+      `"${b.status}"`
+    ]);
+    const csvContent = "data:text/csv;charset=utf-8," + [headers.join(","), ...rows.map(r => r.join(","))].join("\n");
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `rekap-meja-potong-${new Date().toISOString().split("T")[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   return (
     <div className="space-y-6">
@@ -175,21 +215,40 @@ export default function WarehousePage() {
       <div className="border-b border-garis pb-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
         <div>
           <h1 className="text-xl sm:text-2xl font-bold text-celup-indigo tracking-tight">
-            Gudang Multi-Tenant & Anti-Kontaminasi
+            Gudang Multi-Tenant & Anti-Kontaminasi (Pencegahan Bahan Tertukar)
           </h1>
           <p className="text-xs text-teks-sekunder mt-0.5">
-            FR-6.1 Mandatory Tagging Klien • Stasiun Meja Potong (Cutting) • FR-6.2 Validasi Pintu Cutting
+            Pemisahan Bahan Klien (FR-6.1) • Stasiun Meja Potong (Cutting) • Validasi Kecocokan Bahan & Pesanan (FR-6.2)
           </p>
         </div>
 
-        <button
-          onClick={loadData}
-          className="px-3.5 py-2 rounded-field bg-white border border-garis text-celup-indigo hover:border-celup-indigo text-xs font-semibold flex items-center justify-center gap-1.5 w-full md:w-auto shadow-hard transition-all active:translate-y-0.5"
-        >
-          <RefreshCw className="w-3.5 h-3.5 flex-shrink-0" />
-          <span>Refresh Stok</span>
-        </button>
+        <div className="flex gap-2 w-full md:w-auto">
+          {warehouseTab === "CUTTING" && (
+            <button
+              onClick={exportCuttingCsv}
+              className="px-3.5 py-2 rounded-field bg-white border border-garis text-celup-indigo hover:border-celup-indigo text-xs font-semibold flex items-center justify-center gap-1.5 shadow-hard transition-all active:translate-y-0.5"
+              title="Unduh laporan riwayat meja potong ke format CSV/Excel"
+            >
+              <Download className="w-3.5 h-3.5 flex-shrink-0" />
+              <span>Ekspor CSV</span>
+            </button>
+          )}
+          <button
+            onClick={loadData}
+            className="px-3.5 py-2 rounded-field bg-white border border-garis text-celup-indigo hover:border-celup-indigo text-xs font-semibold flex items-center justify-center gap-1.5 w-full md:w-auto shadow-hard transition-all active:translate-y-0.5"
+          >
+            <RefreshCw className="w-3.5 h-3.5 flex-shrink-0" />
+            <span>Refresh Stok</span>
+          </button>
+        </div>
       </div>
+
+      {/* Universal Filter & Date Range Bar */}
+      <UniversalFilterBar
+        filter={filter}
+        onChange={setFilter}
+        searchPlaceholder="Cari bahan baku (Taslan, Fleece, Cotton, roll)..."
+      />
 
       {/* 2 Stasiun Kerja: Inventaris vs Meja Potong (Cutting Station) - Opsi A */}
       <div className="flex gap-2 border-b border-garis pb-1 overflow-x-auto">
@@ -351,9 +410,9 @@ export default function WarehousePage() {
           {/* Client Filter Tags */}
           <div className="flex flex-wrap items-center gap-1.5">
             <button
-              onClick={() => setFilterClient("ALL")}
+              onClick={() => setFilter(prev => ({ ...prev, clientCode: "ALL" }))}
               className={`px-2.5 py-1 text-xs rounded font-semibold border ${
-                filterClient === "ALL"
+                filter.clientCode === "ALL"
                   ? "bg-celup-indigo text-white border-celup-indigo"
                   : "bg-white text-teks-sekunder border-garis hover:border-celup-indigo"
               }`}
@@ -361,9 +420,9 @@ export default function WarehousePage() {
               Semua Klien
             </button>
             <button
-              onClick={() => setFilterClient("SNOHUND")}
+              onClick={() => setFilter(prev => ({ ...prev, clientCode: "SNOHUND" }))}
               className={`px-2.5 py-1 text-xs rounded font-semibold border ${
-                filterClient === "SNOHUND"
+                filter.clientCode === "SNOHUND"
                   ? "bg-thread-snohund text-white border-thread-snohund"
                   : "bg-white text-teks-sekunder border-garis"
               }`}
@@ -371,9 +430,9 @@ export default function WarehousePage() {
               SH Snøhund
             </button>
             <button
-              onClick={() => setFilterClient("KLIEN_A")}
+              onClick={() => setFilter(prev => ({ ...prev, clientCode: "KLIEN_A" }))}
               className={`px-2.5 py-1 text-xs rounded font-semibold border ${
-                filterClient === "KLIEN_A"
+                filter.clientCode === "KLIEN_A"
                   ? "bg-thread-klien1 text-white border-thread-klien1"
                   : "bg-white text-teks-sekunder border-garis"
               }`}
@@ -381,9 +440,9 @@ export default function WarehousePage() {
               KA Klien A
             </button>
             <button
-              onClick={() => setFilterClient("KLIEN_B")}
+              onClick={() => setFilter(prev => ({ ...prev, clientCode: "KLIEN_B" }))}
               className={`px-2.5 py-1 text-xs rounded font-semibold border ${
-                filterClient === "KLIEN_B"
+                filter.clientCode === "KLIEN_B"
                   ? "bg-thread-klien2 text-white border-thread-klien2"
                   : "bg-white text-teks-sekunder border-garis"
               }`}

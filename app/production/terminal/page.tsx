@@ -10,7 +10,8 @@ import {
   UserPlus, 
   Layers, 
   Sparkles,
-  AlertCircle
+  AlertCircle,
+  Download
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { StitchBorder } from "@/components/Design/StitchBorder";
@@ -159,6 +160,26 @@ export default function ProductionTerminalPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const exportLogsCsv = () => {
+    const headers = ["Waktu Slot", "Nomor Mesin", "Nama Karyawan", "Komponen", "Jumlah (pcs)", "Status Verifikasi"];
+    const rows = todayLogs.map(log => [
+      `"${log.time_slot}"`,
+      log.machine_number,
+      `"${log.user_profiles?.full_name || 'Penjahit'}"`,
+      `"${log.component_name || '-'}"`,
+      log.quantity_produced,
+      `"${log.verification_status}"`
+    ]);
+    const csvContent = "data:text/csv;charset=utf-8," + [headers.join(","), ...rows.map(r => r.join(","))].join("\n");
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `log-output-30menit-${new Date().toISOString().split("T")[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   // 1-Tap Mandor Verify Handler (Transforms Dashed StitchBorder to Solid Checkmark)
@@ -537,13 +558,23 @@ export default function ProductionTerminalPage() {
 
           {/* Real-time 30-Min Logs Feed with 1-Tap Mandor Verify (Section 6.2 & UAT-02) */}
           <div className="bg-lembar p-5 rounded-work border border-garis shadow-hard space-y-3">
-            <div className="flex items-center justify-between border-b border-garis pb-2">
-              <h2 className="text-sm font-bold text-celup-indigo">
-                Riwayat Output 30 Menit & Status Verifikasi
-              </h2>
-              <span className="text-xs text-teks-sekunder">
-                Garis Putus-Putus = Pending • Garis Penuh = Sah
-              </span>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-garis pb-2 gap-2">
+              <div>
+                <h2 className="text-sm font-bold text-celup-indigo">
+                  Riwayat Output 30 Menit & Status Verifikasi
+                </h2>
+                <span className="text-xs text-teks-sekunder">
+                  Garis Putus-Putus = Pending • Garis Penuh = Sah
+                </span>
+              </div>
+              <button
+                onClick={exportLogsCsv}
+                className="px-2.5 py-1 bg-white hover:bg-kabut border border-garis text-celup-indigo font-bold text-xs rounded shadow-sm flex items-center gap-1 self-start sm:self-auto transition-all"
+                title="Unduh log output 30 menit ke format CSV"
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span>Ekspor CSV</span>
+              </button>
             </div>
 
             <div className="space-y-3 max-h-80 overflow-y-auto">

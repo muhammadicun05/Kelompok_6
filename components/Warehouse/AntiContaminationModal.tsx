@@ -54,8 +54,8 @@ export const AntiContaminationModal: React.FC<AntiContaminationModalProps> = ({
 
         <div>
           <h2 className="text-2xl font-bold tracking-tight">Pengeluaran Dibatalkan!</h2>
-          <p className="text-white/80 text-sm mt-1">
-            Terdeteksi Pelanggaran Aturan Anti-Kontaminasi Silang (FR-6.2)
+          <p className="text-white/90 text-sm mt-1">
+            Pencegahan Bahan Tertukar • Validasi Anti-Kontaminasi FR-6.2
           </p>
         </div>
 
@@ -92,8 +92,8 @@ export const AntiContaminationModal: React.FC<AntiContaminationModalProps> = ({
           )}
         </div>
 
-        <div className="text-xs text-white/80">
-          Stok tidak dikurangi. Kejadian telah dicatat ke audit log keamanan data.
+        <div className="text-xs text-white/90">
+          Stok kain aman dan tidak berkurang. Sistem otomatis memproteksi kain agar tidak tertukar antar-pesanan klien.
         </div>
 
         {/* Action Buttons */}
