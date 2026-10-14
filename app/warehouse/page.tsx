@@ -147,23 +147,32 @@ export default function WarehousePage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="border-b border-garis pb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+      <div className="border-b border-garis pb-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-celup-indigo tracking-tight">
-            Fase 3: Gudang Multi-Tenant & Anti-Kontaminasi
+          <h1 className="text-xl sm:text-2xl font-bold text-celup-indigo tracking-tight">
+            Fase 3: Gudang Multi-Tenant & Anti-Kontaminasi (Operasional Cutting)
           </h1>
           <p className="text-xs text-teks-sekunder mt-0.5">
-            FR-6.1 Mandatory Tagging Klien • FR-6.2 Blokir Pintu Cutting Silang
+            FR-6.1 Mandatory Tagging Klien • Pemotongan Kain (Cutting) Dilakukan oleh Tim Gudang • FR-6.2 Blokir Silang
           </p>
         </div>
 
         <button
           onClick={loadData}
-          className="px-3.5 py-2 rounded-field bg-white border border-garis text-celup-indigo hover:border-celup-indigo text-xs font-semibold flex items-center justify-center gap-1.5 w-full sm:w-auto shadow-hard transition-all active:translate-y-0.5"
+          className="px-3.5 py-2 rounded-field bg-white border border-garis text-celup-indigo hover:border-celup-indigo text-xs font-semibold flex items-center justify-center gap-1.5 w-full md:w-auto shadow-hard transition-all active:translate-y-0.5"
         >
           <RefreshCw className="w-3.5 h-3.5 flex-shrink-0" />
           <span>Refresh Stok</span>
         </button>
+      </div>
+
+      {/* Operational Cutting by Warehouse Banner */}
+      <div className="p-3 bg-white border-l-4 border-status-lolos rounded-field shadow-hard text-xs text-tinta flex items-start gap-2.5">
+        <CheckCircle2 className="w-4 h-4 text-status-lolos flex-shrink-0 mt-0.5" />
+        <div>
+          <strong className="text-celup-indigo">Aturan Operasional Gudang & Cutting:</strong>{" "}
+          Proses pemotongan bahan baku (<strong>Cutting</strong>) dilakukan langsung oleh personil Tim Gudang setelah bahan lolos validasi anti-kontaminasi FR-6.2, sebelum diteruskan ke lini jahit.
+        </div>
       </div>
 
       {/* Interactive Material Issue Bar (Simulasi QR Scanner & Pintu Cutting) */}

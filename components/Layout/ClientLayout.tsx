@@ -94,12 +94,12 @@ function InnerLayout({ children }: { children: React.ReactNode }) {
               </button>
             </div>
           ) : isMobileSimulated ? (
-            <div className="w-[390px] min-h-[844px] bg-white border-4 border-celup-indigo rounded-[36px] p-4 shadow-2xl relative overflow-y-auto my-4 flex flex-col">
-              <div className="w-32 h-4 bg-celup-indigo rounded-full mx-auto mb-3"></div>
-              <div className="flex-1">{children}</div>
+            <div className="w-[390px] max-w-full min-h-[844px] bg-white border-4 border-celup-indigo rounded-[36px] p-4 shadow-2xl relative overflow-y-auto overflow-x-hidden my-4 flex flex-col mobile-frame-sim">
+              <div className="w-32 h-4 bg-celup-indigo rounded-full mx-auto mb-3 flex-shrink-0"></div>
+              <div className="flex-1 min-w-0">{children}</div>
             </div>
           ) : (
-            <div className="w-full max-w-7xl mx-auto">{children}</div>
+            <div className="w-full max-w-7xl mx-auto min-w-0">{children}</div>
           )}
         </main>
       </div>

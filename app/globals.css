@@ -13,12 +13,25 @@
   --color-garis: #C9D2D7;
 }
 
+html,
 body {
+  overflow-x: hidden;
+  max-width: 100vw;
   background-color: var(--bg-kabut);
   color: var(--color-tinta);
   font-family: 'Archivo', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   font-feature-settings: "tnum" 1, "cv05" 1;
   -webkit-font-smoothing: antialiased;
+}
+
+/* Ensure simulated mobile frame behaves strictly without horizontal spill */
+.mobile-frame-sim {
+  overflow-x: hidden !important;
+  max-width: 100% !important;
+}
+
+.mobile-frame-sim * {
+  max-width: 100%;
 }
 
 /* Tabular nums by default for numeric and table rows */

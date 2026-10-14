@@ -56,24 +56,25 @@ export const ThreadEdge: React.FC<ThreadEdgeProps> = ({
   );
 };
 
-export const ClientTag: React.FC<{ clientCode?: string; clientName?: string; colorHex?: string }> = ({
+export const ClientTag: React.FC<{ clientCode?: string; clientName?: string; colorHex?: string; className?: string }> = ({
   clientCode,
   clientName,
   colorHex,
+  className = "",
 }) => {
   const threadColor = colorHex || getClientColor(clientCode);
   const monogram = getClientMonogram(clientCode);
 
   return (
     <span
-      className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold text-white rounded-work"
+      className={`inline-flex items-center gap-1.5 px-2 py-0.5 sm:px-2.5 sm:py-1 text-xs font-semibold text-white rounded-work max-w-full ${className}`}
       style={{
         backgroundColor: threadColor,
         clipPath: "polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 0 100%)",
       }}
     >
-      <span className="font-bold tracking-wider">{monogram}</span>
-      {clientName && <span className="opacity-90">{clientName}</span>}
+      <span className="font-bold tracking-wider flex-shrink-0">{monogram}</span>
+      {clientName && <span className="opacity-90 truncate max-w-[110px] sm:max-w-none">{clientName}</span>}
     </span>
   );
 };

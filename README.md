@@ -37,26 +37,26 @@ Berdasarkan dokumen resmi proyek ([`docs/Catatan_Asumsi_dan_Aturan_Bisnis_Presen
 1. **Gaji Borongan TIDAK Terpengaruh Hasil QC**: Gaji penjahit dihitung murni dari output 30 menit yang telah `Verified` oleh Mandor. Status `Repair` atau `Reject` di QC tidak memotong upah penjahit (*no clawback*).
 2. **Hasil QC HANYA Berpengaruh terhadap Pool Bonus QC**: Setiap 1 unit pakaian utuh berstatus `LOLOS` menambah Rp 300 ke saldo Pool Bonus QC.
 3. **Uang Makan (10–15%) Masuk Slip Gaji sebagai Uang Tunai**: Dihitung dari persentase variabel terhadap total borongan dan langsung masuk sebagai tunjangan tunai di slip gaji (`THP = Upah Borongan + Uang Makan`).
-4. **QC Memeriksa 1 Produk Utuh (Barang Jadi)**: Terminal QC hanya menginspeksi barang jadi hasil stasiun *Assembly/Finishing*, bukan komponen lepas.
+4. **QC Memeriksa HANYA 1 Produk Utuh (Barang Jadi)**: Terminal QC hanya menginspeksi barang jadi pakaian utuh hasil stasiun *Assembly/Finishing*, bukan komponen lepas.
 5. **Skema CMT Murni Tetap Menerbitkan PO ke Client**: Berfungsi sebagai surat komitmen resmi, pelacakan (*tracking*), dan pengingat (*reminder*) pengiriman kain agar ±70 mesin tidak menganggur.
 6. **RBAC & Struktur Mandor vs Kepala Operasional**: Hak akses setara, namun struktural Kepala Operasional di atas Mandor. Default bonus QC dibagi rata ($\frac{1}{3}$) untuk **2 Mandor + 1 Kepala Operasional**, dengan opsi pengaturan dinamis jika mandor $> 2$.
 7. **Dual-Mode Input 30 Menit**:
    * Input oleh **Mandor** $\rightarrow$ Status langsung `Verified` (garis penuh).
    * Input oleh **Penjahit** $\rightarrow$ Status `Pending Verification` (garis putus-putus, wajib diverifikasi mandor).
-8. **Tim Cutting Diperlakukan Setara dengan Penjahit**: Masuk dalam perhitungan borongan berbasis *Rate Card* potong pola dan tercatat di slip gaji hari Sabtu.
+8. **Operasional Cutting Dilakukan oleh Tim Gudang**: Proses pemotongan pola kain (*Cutting*) dilakukan langsung oleh personil Tim Gudang setelah bahan baku lolos validasi anti-kontaminasi FR-6.2 sebelum diserahkan ke penjahit lini.
 9. **Diasumsikan TIDAK ADA Sisa Bahan**: Bahan yang dikeluarkan ke cutting diasumsikan terkonversi pas sesuai kuantitas pesanan massal (*zero remnant/shortage*).
-10. **SEMUA 8 Role Wajib Bisa Diakses di Mobile dan Desktop**: Antarmuka responsif dan nyaman dioperasikan di layar HP Kios (`390x844`), Tablet (`768x1024`), maupun PC (`1440x900`).
+10. **Wewenang Tim Sampler & Dukungan Multi-Role**: Sampler adalah personel yang mendaftarkan klaim/spesifikasi artikel klien ke sistem dan menerbitkan order produksi massal. Seluruh 8 antarmuka role adaptif dan bebas dari overflow di layar HP Kios (`390x844`), Tablet (`768x1024`), maupun PC (`1440x900`).
 
 ---
 
 ## 3. 6 Fase Operasional BPMN 2.0
 | Fase | Modul Halaman | Fitur Utama |
 | :--- | :--- | :--- |
-| **Fase 1** | `/samples` | Digital Stopwatch sentuh (SMV), BOM kain, dan *non-destructive versioning* (`v1 -> v2`). |
-| **Fase 2** | `/samples` | Mengunci spesifikasi versi disetujui (`v2`) menjadi pesanan massal (`CMT`/`SEMI_CMT`/`FULL_PACKAGE`). |
-| **Fase 3** | `/warehouse` | Tagging Klien (`FR-6.1`) & **Modal Merah Blokir Anti-Kontaminasi Seketika (HTTP 403)** (`FR-6.2`). |
+| **Fase 1** | `/samples` | Pendaftaran klaim sampel klien oleh Sampler, Digital Stopwatch sentuh (SMV), BOM kain, dan *non-destructive versioning* (`v1 -> v2`). |
+| **Fase 2** | `/samples` | Penerbitan order produksi massal oleh Tim Sampler dari versi disetujui (`v2`) ke pesanan massal (`CMT`/`SEMI_CMT`/`FULL_PACKAGE`). |
+| **Fase 3** | `/warehouse` | Tagging Klien (`FR-6.1`), operasional pemotongan kain (Cutting) oleh Gudang, dan **Modal Merah Blokir Anti-Kontaminasi Seketika (HTTP 403)** (`FR-6.2`). |
 | **Fase 4** | `/production/terminal` | Peta denah ±70 mesin, interval 30 menit, Touch Numpad ($\ge 72\text{px}$), dan *1-Tap Verifikasi Mandor*. |
-| **Fase 5** | `/qc/terminal` | Inspeksi produk utuh, 3 Tombol Raksasa (Lolos, Perbaikan, Cacat), dan Odometer Pool Bonus QC (+Rp 300). |
+| **Fase 5** | `/qc/terminal` | Inspeksi HANYA pada 1 produk jadi utuh, 3 Tombol Raksasa (Lolos, Perbaikan, Cacat), dan Odometer Pool Bonus QC (+Rp 300). |
 | **Fase 6** | `/payroll` | Rekapitulasi borongan Sabtu, slider uang makan 10–15%, pembagian bonus QC 3-arah, alokasi overhead (`FR-10.4`), dan cetak slip 360px. |
 
 ---

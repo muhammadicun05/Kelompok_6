@@ -129,18 +129,18 @@ export default function QcTerminalPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="border-b border-garis pb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+      <div className="border-b border-garis pb-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-celup-indigo tracking-tight">
+          <h1 className="text-xl sm:text-2xl font-bold text-celup-indigo tracking-tight">
             Fase 5: Terminal Inspeksi QC Produk Utuh
           </h1>
           <p className="text-xs text-teks-sekunder mt-0.5">
-            Inspeksi 1 Produk Utuh • Akumulasi Pool Bonus QC (FR-5.1 s/d FR-5.2)
+            Inspeksi HANYA pada 1 Produk Jadi Utuh • Akumulasi Pool Bonus QC (FR-5.1 s/d FR-5.2)
           </p>
         </div>
 
         {/* Selected Order & Article Tag */}
-        <div className="flex flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-2 w-full sm:w-auto">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-2 w-full md:w-auto">
           <label className="text-xs font-semibold text-teks-sekunder">Inspeksi Order:</label>
           <select
             value={selectedOrderId}
@@ -156,12 +156,12 @@ export default function QcTerminalPage() {
         </div>
       </div>
 
-      {/* Critical Business Rule Banner (Asumsi #1 & #2) */}
+      {/* Critical Business Rule Banner (Asumsi #1, #2 & #4) */}
       <div className="p-3 bg-white border-l-4 border-celup-indigo rounded-field shadow-hard flex items-start gap-2.5 text-xs text-tinta">
         <Info className="w-4 h-4 text-celup-indigo flex-shrink-0 mt-0.5" />
         <div>
-          <strong className="text-celup-indigo">Aturan Resmi Bisnis Lukla (Asumsi #1 & #2):</strong>{" "}
-          Gaji borongan penjahit <strong>TIDAK terpengaruh</strong> oleh hasil QC (*no clawback*). Unit Lolos murni menambah saldo <strong>Pool Bonus QC</strong> untuk supervisor (2 Mandor + 1 Kepala Operasional).
+          <strong className="text-celup-indigo">Aturan Resmi Bisnis Lukla (Asumsi #1, #2 & #4):</strong>{" "}
+          Inspeksi QC dilakukan <strong>HANYA saat barang sudah jadi pakaian utuh</strong> (hasil stasiun assembly/finishing), bukan komponen lepas. Gaji borongan penjahit <strong>TIDAK terpengaruh</strong> oleh hasil QC (*no clawback*). Unit Lolos murni menambah saldo <strong>Pool Bonus QC</strong> untuk supervisor (2 Mandor + 1 Kepala Operasional).
         </div>
       </div>
 

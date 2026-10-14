@@ -18,9 +18,11 @@ Dokumen ini adalah **Master Steering Rule** untuk pengembangan **Lukla Operation
 ## 2. Aturan Fungsional Mutlak (6 Fase Operasional BPMN)
 
 1. **Fase 1 — Sampel & Studi Waktu**:
+   - Tim Sampler adalah personel yang mendaftarkan klaim / intake spesifikasi sampel baru klien ke dalam sistem.
    - Wajib mendukung *versioning* revisi sampel (`v1 -> v2 -> vN`) tanpa menimpa histori versi sebelumnya.
    - Menyediakan **Digital Stopwatch** per komponen garmen untuk mencatat waktu standar (**SMV**) dan konsumsi bahan sampel (**BOM**).
 2. **Fase 2 — Persetujuan & Pesanan Massal**:
+   - Tim Sampler adalah personel yang mengeksekusi penerbitan **Order Produksi Massal** dari versi sampel yang disetujui (Approved v2).
    - Konversi dari versi sampel yang disetujui otomatis mengunci spesifikasi ke pesanan massal beserta skema maklon (`CMT` / `SEMI_CMT` / `FULL_PACKAGE`).
    - Owner menetapkan **Rate Card** (tarif potong & jahit per komponen/artikel) dan parameter variabel (% uang makan, rate bonus QC).
 3. **Fase 3 — Gudang, PO & Anti-Kontaminasi (`FR-6.1` & `FR-6.2`)**:
@@ -53,9 +55,9 @@ Berdasarkan keputusan resmi proyek (lihat detail argumen di `docs/Catatan_Asumsi
 7. **Dual-Mode Input 30 Menit**:
    - Jika diinput oleh **Mandor** -> Status output **langsung `Verified`**.
    - Jika diinput oleh **Penjahit** -> Status output **`Pending Verification`** (wajib diverifikasi Mandor).
-8. **Tim Cutting Diperlakukan Setara/Sama dengan Penjahit**: Masuk dalam perhitungan borongan berbasis *Rate Card* potong dan alur tenaga kerja yang setara.
+8. **Operasional Cutting Dilakukan oleh Tim Gudang**: Proses pemotongan kain (*Cutting*) dilakukan langsung oleh personil Tim Gudang setelah bahan baku lolos validasi anti-kontaminasi FR-6.2 sebelum diserahkan ke penjahit lini.
 9. **Diasumsikan TIDAK ADA Sisa Bahan**: Bahan titipan/baku yang dikeluarkan ke cutting diasumsikan terkonversi pas sesuai kuantitas pesanan massal (*zero remnant/shortage*).
-10. **SEMUA 8 Role Wajib Bisa Diakses di Mobile dan Desktop**: Seluruh antarmuka dari Owner hingga Penjahit harus adaptif dan nyaman dioperasikan di layar HP/Tablet maupun PC.
+10. **Wewenang Tim Sampler & Multi-Role Responsif**: Sampler adalah personel yang mendaftarkan klaim/spesifikasi klien dan menerbitkan order produksi massal. Seluruh 8 antarmuka role wajib adaptif dan bebas dari overflow/scroll horizontal di layar Mobile (`390x844`), Tablet (`768x1024`), maupun PC (`1440x900`).
 
 ---
 

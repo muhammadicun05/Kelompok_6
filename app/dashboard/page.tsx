@@ -82,9 +82,9 @@ export default function DashboardPage() {
   return (
     <div className="space-y-6">
       {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-garis pb-4">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 border-b border-garis pb-4">
         <div>
-          <h1 className="text-2xl font-bold text-celup-indigo tracking-tight">
+          <h1 className="text-xl sm:text-2xl font-bold text-celup-indigo tracking-tight">
             Dashboard Operasional Pabrik
           </h1>
           <p className="text-xs text-teks-sekunder mt-0.5">
@@ -92,7 +92,7 @@ export default function DashboardPage() {
           </p>
         </div>
 
-        <div className="grid grid-cols-2 sm:flex sm:items-center gap-2 w-full sm:w-auto">
+        <div className="grid grid-cols-2 gap-2 w-full md:w-auto">
           <Link
             href="/production/terminal"
             className="px-3 py-2 rounded-work bg-celup-indigo text-white text-xs font-semibold hover:bg-celup-indigo/90 shadow-hard flex items-center justify-center gap-1.5 transition-all text-center"
@@ -197,9 +197,9 @@ export default function DashboardPage() {
               {recentOrders.map((ord) => (
                 <div key={ord.id} className="py-3">
                   <ThreadEdge clientCode={ord.clients?.client_code} className="pl-3">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                      <div>
-                        <div className="flex items-center gap-2">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 min-w-0">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
                           <ClientTag
                             clientCode={ord.clients?.client_code}
                             clientName={ord.clients?.name}
@@ -211,19 +211,21 @@ export default function DashboardPage() {
                             {ord.scheme}
                           </span>
                         </div>
-                        <p className="text-sm font-semibold text-tinta mt-1">
+                        <p className="text-sm font-semibold text-tinta mt-1 truncate">
                           {ord.article_name}
                         </p>
                       </div>
 
-                      <div className="text-right">
-                        <div className="text-xs font-medium text-teks-sekunder">
-                          Progres Selesai:
+                      <div className="flex items-center sm:flex-col sm:items-end justify-between sm:justify-center gap-2 pt-1 sm:pt-0 sm:text-right border-t sm:border-t-0 border-garis/40">
+                        <div>
+                          <div className="text-[11px] font-medium text-teks-sekunder">
+                            Progres Selesai:
+                          </div>
+                          <div className="text-xs sm:text-sm font-bold text-celup-indigo tabular-nums">
+                            {ord.completed_qty || 0} / {ord.target_qty} pcs
+                          </div>
                         </div>
-                        <div className="text-sm font-bold text-celup-indigo tabular-nums">
-                          {ord.completed_qty || 0} / {ord.target_qty} pcs
-                        </div>
-                        <div className="w-28 h-1.5 bg-kabut rounded-full overflow-hidden mt-1 ml-auto">
+                        <div className="w-24 sm:w-28 h-1.5 bg-kabut rounded-full overflow-hidden flex-shrink-0">
                           <div
                             className="h-full bg-celup-indigo"
                             style={{
@@ -248,7 +250,7 @@ export default function DashboardPage() {
               <span className="text-xs text-teks-sekunder">Monitoring 30 Menit</span>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               <div className="bg-white p-3 rounded-field border border-garis">
                 <span className="text-xs text-teks-sekunder font-medium block">Lini A (Hoodie Snøhund)</span>
                 <span className="text-lg font-bold text-celup-indigo tabular-nums">Mesin #1 - #20</span>
@@ -327,16 +329,22 @@ export default function DashboardPage() {
             </h3>
             <ul className="text-xs text-teks-sekunder space-y-2 list-disc pl-4">
               <li>
-                <strong className="text-tinta">Gaji Borongan:</strong> Murni dari output 30 menit yang telah <span className="text-status-lolos font-semibold">Verified</span>, bebas dari pemotongan hasil QC (*no clawback*).
+                <strong className="text-tinta">Tim Sampler (Fase 1 & 2):</strong> Personel yang mendaftarkan klaim/spesifikasi klien ke sistem dan menerbitkan order produksi massal.
+              </li>
+              <li>
+                <strong className="text-tinta">Cutting (Gudang):</strong> Proses pemotongan kain dilakukan langsung oleh Tim Gudang setelah lolos anti-kontaminasi FR-6.2.
+              </li>
+              <li>
+                <strong className="text-tinta">QC Produk Utuh:</strong> Inspeksi QC dilakukan <span className="text-celup-indigo font-semibold">HANYA saat barang jadi utuh</span> (hasil assembly), bukan komponen lepas.
+              </li>
+              <li>
+                <strong className="text-tinta">Gaji Borongan:</strong> Murni dari output 30 menit yang telah <span className="text-status-lolos font-semibold">Verified</span> (*no clawback*).
               </li>
               <li>
                 <strong className="text-tinta">Uang Makan (10–15%):</strong> Masuk slip gaji sebagai uang tunai langsung.
               </li>
               <li>
-                <strong className="text-tinta">Bonus QC:</strong> Dibagi rata 3-arah kepada 2 Mandor + 1 Kepala Operasional.
-              </li>
-              <li>
-                <strong className="text-tinta">Anti-Kontaminasi:</strong> Pintu cutting memblokir seketika bila Tag Klien beda.
+                <strong className="text-tinta">Bonus QC:</strong> Dibagi rata kepada 2 Mandor + 1 Kepala Operasional.
               </li>
             </ul>
           </div>
