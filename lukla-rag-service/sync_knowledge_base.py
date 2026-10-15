@@ -14,14 +14,19 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 
 DOCS_TO_INGEST = [
     {
-        "path": REPO_ROOT / "Business Requirement Document (BRD)_V3.md",
-        "title": "BRD V3 — Business Requirement Document Kelompok 6",
+        "path": REPO_ROOT / "Lukla_BRD_v2.0_Final.md",
+        "title": "Master BRD v2.0 Final — Lukla Operations Engine",
         "category": "BRD"
     },
     {
-        "path": REPO_ROOT / "PRD_Lukla_Operations_Engine.md",
-        "title": "PRD v1.0 — Product Requirements Document",
+        "path": REPO_ROOT / "Lukla_PRD_v2.0_Final.md",
+        "title": "Master PRD v2.0 Final — Lukla Operations Engine",
         "category": "PRD"
+    },
+    {
+        "path": REPO_ROOT / "Lukla_BPMN_2.0_Final.md",
+        "title": "Master BPMN 2.0 Operational Flow — Lukla Operations Engine",
+        "category": "BPMN"
     },
     {
         "path": REPO_ROOT / "DESIGN_SYSTEM.md",

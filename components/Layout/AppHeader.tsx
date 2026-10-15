@@ -2,12 +2,13 @@
 
 import React from "react";
 import { Role } from "@/lib/types";
-import { Sparkles, Users, Smartphone, Monitor, Factory } from "lucide-react";
+import { Sparkles, Users, Smartphone, Monitor, Factory, Bot } from "lucide-react";
 
 interface AppHeaderProps {
   currentRole: Role;
   onRoleChange: (newRole: Role) => void;
   onToggleAi: () => void;
+  onToggleTelegram?: () => void;
   isMobileSimulated: boolean;
   onToggleMobileSim: () => void;
 }
@@ -28,6 +29,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
   currentRole,
   onRoleChange,
   onToggleAi,
+  onToggleTelegram,
   isMobileSimulated,
   onToggleMobileSim,
 }) => {
@@ -96,6 +98,18 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
             </>
           )}
         </button>
+
+        {/* Telegram Bot Button */}
+        {onToggleTelegram && (
+          <button
+            onClick={onToggleTelegram}
+            title="Integrasi Notifikasi & Approval Telegram Bot"
+            className="flex-shrink-0 flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-field bg-white border border-garis text-celup-indigo hover:border-celup-indigo font-medium text-xs shadow-sm transition-all active:translate-y-0.5"
+          >
+            <Bot className="w-3.5 h-3.5 text-blue-600 flex-shrink-0" />
+            <span className="hidden sm:inline">Bot Telegram</span>
+          </button>
+        )}
 
         {/* Tanya Lukla AI Button */}
         <button

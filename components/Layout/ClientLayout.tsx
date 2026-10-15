@@ -5,6 +5,7 @@ import { Role } from "@/lib/types";
 import { AppHeader } from "./AppHeader";
 import { SidebarNav } from "./SidebarNav";
 import { AiAssistantDrawer } from "../AiAssistantDrawer";
+import { TelegramModal } from "../Telegram/TelegramModal";
 import { usePathname } from "next/navigation";
 import { UserCheck, ShieldCheck, ShieldAlert, ArrowRight } from "lucide-react";
 import { RoleProvider, useRole, ROLE_ALLOWED_ROUTES, ROLE_DEFAULT_ROUTES } from "./RoleContext";
@@ -24,6 +25,7 @@ const ROLE_INFO: Record<Role, { name: string; desc: string; color: string }> = {
 function InnerLayout({ children }: { children: React.ReactNode }) {
   const { currentRole, setRole, isMobileSimulated, toggleMobileSim } = useRole();
   const [isAiOpen, setIsAiOpen] = useState(false);
+  const [isTelegramOpen, setIsTelegramOpen] = useState(false);
   const pathname = usePathname();
   const info = ROLE_INFO[currentRole] || ROLE_INFO.OWNER;
 
@@ -38,6 +40,7 @@ function InnerLayout({ children }: { children: React.ReactNode }) {
         currentRole={currentRole}
         onRoleChange={setRole}
         onToggleAi={() => setIsAiOpen(true)}
+        onToggleTelegram={() => setIsTelegramOpen(true)}
         isMobileSimulated={isMobileSimulated}
         onToggleMobileSim={toggleMobileSim}
       />
@@ -110,6 +113,11 @@ function InnerLayout({ children }: { children: React.ReactNode }) {
         isOpen={isAiOpen}
         onClose={() => setIsAiOpen(false)}
         currentRole={currentRole}
+      />
+
+      <TelegramModal
+        isOpen={isTelegramOpen}
+        onClose={() => setIsTelegramOpen(false)}
       />
     </div>
   );
