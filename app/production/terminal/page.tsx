@@ -11,7 +11,10 @@ import {
   Layers, 
   Sparkles,
   AlertCircle,
-  Download
+  Download,
+  Users,
+  X,
+  Edit2
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { StitchBorder } from "@/components/Design/StitchBorder";
@@ -38,23 +41,52 @@ export default function ProductionTerminalPage() {
   const [selectedMachine, setSelectedMachine] = useState<number>(1);
   const [activeSlot, setActiveSlot] = useState<string>("09:00-09:30");
   const [typedQty, setTypedQty] = useState<string>("20");
-  const [activeComponent, setActiveComponent] = useState<string>("Badan Depan & Kantong Kanguru");
+  const [activeComponent, setActiveComponent] = useState<string>("Panel Depan & Saku Organizer");
   const [activeRole, setActiveRole] = useState<"MANDOR" | "TAILOR_OPERATOR">("MANDOR");
   const [tailorSubMode, setTailorSubMode] = useState<"OPERATOR" | "ASSEMBLY">("OPERATOR");
+
+  // Matriks Alokasi Penjahit (QA Pak Harry Point 3)
+  const [showAllocationModal, setShowAllocationModal] = useState<boolean>(false);
+  const [activeTailors] = useState<string[]>([
+    "Siti Aminah (Mesin #1)",
+    "Rina Wulandari (Mesin #2)",
+    "Budi Santoso (Mesin #3)",
+    "Agus Pratama (Mesin #4)",
+    "Dewi Lestari (Mesin #5)",
+    "Hendra Wijaya (Mesin #6)",
+    "Asep Saepuloh (Mesin #7)",
+    "Cecep Supriatna (Mesin #8)",
+    "Nur Hasanah (Mesin #9)",
+    "Yayan Mulyana (Mesin #10)",
+  ]);
+  const [allocations, setAllocations] = useState<Record<number, { tailor: string; orderNumber: string; component: string }>>({
+    1: { tailor: "Siti Aminah", orderNumber: "ORD-2026-004", component: "Panel Depan & Saku Organizer" },
+    2: { tailor: "Rina Wulandari", orderNumber: "ORD-2026-004", component: "Panel Belakang & Busa Tali Bahu" },
+    3: { tailor: "Budi Santoso", orderNumber: "ORD-2026-004", component: "Webbing Molle & Buckle Acetal" },
+    4: { tailor: "Agus Pratama", orderNumber: "ORD-2026-004", component: "Assembly Ransel Utuh & Resleting YKK" },
+    5: { tailor: "Dewi Lestari", orderNumber: "ORD-2026-002", component: "Roll-Top Main Body & Saku Samping" },
+    6: { tailor: "Hendra Wijaya", orderNumber: "ORD-2026-002", component: "Laptop Sleeve & Padding Belakang" },
+  });
+
+  const [allocMachine, setAllocMachine] = useState<number>(1);
+  const [allocTailor, setAllocTailor] = useState<string>("Siti Aminah");
+  const [allocOrder, setAllocOrder] = useState<string>("ORD-2026-004");
+  const [allocComponent, setAllocComponent] = useState<string>("Panel Depan & Saku Organizer");
+
   const [fifoQueue, setFifoQueue] = useState([
     {
       batchId: "FIFO-B01",
-      orderNumber: "ORD-2026-001",
-      articleName: "Snøhund Alpine Hoodie",
-      components: "Badan Depan, Belakang, Lengan, Rib",
+      orderNumber: "ORD-2026-004",
+      articleName: "Snøhund Alpine Tactical Backpack 35L",
+      components: "Panel Depan, Belakang, Tali Bahu, Webbing Molle, Resleting YKK",
       qtyAvailable: 50,
       verifiedAt: "10:00 WIB (Mandor Ujang)",
     },
     {
       batchId: "FIFO-B02",
       orderNumber: "ORD-2026-002",
-      articleName: "Urban Windbreaker Parka",
-      components: "Badan, Lengan, Hood, Resleting",
+      articleName: "Urban Commuter Roll-Top Backpack 25L",
+      components: "Roll-Top Main Body, Laptop Sleeve, Tali Bahu Busa, Buckle Acetal",
       qtyAvailable: 40,
       verifiedAt: "10:30 WIB (Mandor Ujang)",
     },
@@ -103,6 +135,30 @@ export default function ProductionTerminalPage() {
   useEffect(() => {
     loadLogs();
   }, []);
+
+  const handleSelectMachine = (mNum: number) => {
+    setSelectedMachine(mNum);
+    if (allocations[mNum]) {
+      const alloc = allocations[mNum];
+      setActiveComponent(alloc.component);
+      const matchedOrder = orders.find((o) => o.order_number === alloc.orderNumber);
+      if (matchedOrder) setSelectedOrderId(matchedOrder.id);
+    }
+  };
+
+  const handleSaveAllocation = () => {
+    setAllocations((prev) => ({
+      ...prev,
+      [allocMachine]: {
+        tailor: allocTailor,
+        orderNumber: allocOrder,
+        component: allocComponent,
+      },
+    }));
+    setNotification(
+      `Alokasi Berhasil: Mesin #${allocMachine} ditugaskan kepada ${allocTailor} untuk ${allocOrder} — ${allocComponent}!`
+    );
+  };
 
   // Numpad Touch Handlers (Section 8.1)
   const handleDigit = (digit: string) => {
@@ -217,33 +273,205 @@ export default function ProductionTerminalPage() {
           </p>
         </div>
 
-        {/* Dual Mode Switcher Bar */}
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-1.5 bg-kabut p-1.5 rounded-field border border-garis w-full sm:w-auto">
-          <span className="text-[11px] font-semibold text-teks-sekunder px-1">Mode Terminal:</span>
-          <div className="grid grid-cols-2 gap-1.5">
-            <button
-              onClick={() => setActiveRole("TAILOR_OPERATOR")}
-              className={`px-2.5 sm:px-3 py-1.5 rounded text-xs font-bold transition-all text-center whitespace-nowrap ${
-                activeRole === "TAILOR_OPERATOR"
-                  ? "bg-celup-indigo text-white shadow-sm"
-                  : "bg-white/80 text-teks-sekunder hover:text-celup-indigo border border-garis"
-              }`}
-            >
-              Penjahit (Pending)
-            </button>
-            <button
-              onClick={() => setActiveRole("MANDOR")}
-              className={`px-2.5 sm:px-3 py-1.5 rounded text-xs font-bold transition-all text-center whitespace-nowrap ${
-                activeRole === "MANDOR"
-                  ? "bg-kapur text-celup-indigo shadow-sm border border-celup-indigo"
-                  : "bg-white/80 text-teks-sekunder hover:text-celup-indigo border border-garis"
-              }`}
-            >
-              Mandor (Verified)
-            </button>
+        {/* Dual Mode & Tailor Allocation Bar */}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+          {/* Matriks Alokasi Penjahit Button (QA Pak Harry Point 3) */}
+          <button
+            onClick={() => setShowAllocationModal(true)}
+            className="px-3 py-2 rounded-work bg-celup-indigo text-white text-xs font-bold hover:bg-celup-indigo/90 shadow-hard flex items-center justify-center gap-1.5 transition-all"
+          >
+            <Users className="w-3.5 h-3.5" />
+            <span>Alokasi Penjahit (±70 Mesin)</span>
+            <span className="bg-kapur text-celup-indigo text-[10px] px-1.5 py-0.2 rounded font-extrabold ml-1">
+              {Object.keys(allocations).length}
+            </span>
+          </button>
+
+          {/* Dual Mode Switcher Bar */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-1.5 bg-kabut p-1.5 rounded-field border border-garis w-full sm:w-auto">
+            <span className="text-[11px] font-semibold text-teks-sekunder px-1">Mode Terminal:</span>
+            <div className="grid grid-cols-2 gap-1.5">
+              <button
+                onClick={() => setActiveRole("TAILOR_OPERATOR")}
+                className={`px-2.5 sm:px-3 py-1.5 rounded text-xs font-bold transition-all text-center whitespace-nowrap ${
+                  activeRole === "TAILOR_OPERATOR"
+                    ? "bg-celup-indigo text-white shadow-sm"
+                    : "bg-white/80 text-teks-sekunder hover:text-celup-indigo border border-garis"
+                }`}
+              >
+                Penjahit (Pending)
+              </button>
+              <button
+                onClick={() => setActiveRole("MANDOR")}
+                className={`px-2.5 sm:px-3 py-1.5 rounded text-xs font-bold transition-all text-center whitespace-nowrap ${
+                  activeRole === "MANDOR"
+                    ? "bg-kapur text-celup-indigo shadow-sm border border-celup-indigo"
+                    : "bg-white/80 text-teks-sekunder hover:text-celup-indigo border border-garis"
+                }`}
+              >
+                Mandor (Verified)
+              </button>
+            </div>
           </div>
         </div>
       </div>
+
+      {/* Matriks Alokasi Penjahit Modal (QA Pak Harry Point 3) */}
+      {showAllocationModal && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-3 sm:p-4 backdrop-blur-xs">
+          <div className="bg-lembar border-2 border-celup-indigo rounded-work shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto p-5 space-y-4">
+            <div className="flex items-center justify-between border-b border-garis pb-3">
+              <div className="flex items-center gap-2">
+                <Users className="w-5 h-5 text-celup-indigo" />
+                <div>
+                  <h2 className="text-base font-bold text-celup-indigo">
+                    Matriks Alokasi Penjahit Lini Produksi (±70 Mesin)
+                  </h2>
+                  <p className="text-xs text-teks-sekunder">
+                    Wewenang Mandor & Kepala Operasional: Petakan penjahit ke nomor mesin, pesanan, dan komponen garmen/tas.
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowAllocationModal(false)}
+                className="w-8 h-8 rounded-full bg-white hover:bg-kabut border border-garis flex items-center justify-center text-teks-sekunder"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Quick Assignment Form */}
+            <div className="p-4 bg-white rounded-work border border-garis shadow-sm space-y-3">
+              <div className="text-xs font-bold text-celup-indigo uppercase tracking-wider flex items-center gap-1.5">
+                <UserPlus className="w-4 h-4 text-celup-indigo" />
+                <span>Formulir Penugasan Penjahit ke Mesin:</span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+                <div>
+                  <label className="text-[11px] font-semibold text-teks-sekunder block mb-1">
+                    Nomor Mesin (1-70):
+                  </label>
+                  <select
+                    value={allocMachine}
+                    onChange={(e) => setAllocMachine(Number(e.target.value))}
+                    className="w-full text-xs font-bold text-celup-indigo bg-lembar border border-garis rounded p-2"
+                  >
+                    {Array.from({ length: 70 }, (_, i) => i + 1).map((m) => (
+                      <option key={m} value={m}>
+                        Mesin #{m} {allocations[m] ? `(${allocations[m].tailor})` : "(Kosong)"}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-[11px] font-semibold text-teks-sekunder block mb-1">
+                    Nama Penjahit:
+                  </label>
+                  <select
+                    value={allocTailor}
+                    onChange={(e) => setAllocTailor(e.target.value.split(" (")[0])}
+                    className="w-full text-xs font-bold text-tinta bg-lembar border border-garis rounded p-2"
+                  >
+                    {activeTailors.map((t, idx) => (
+                      <option key={idx} value={t}>
+                        {t}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-[11px] font-semibold text-teks-sekunder block mb-1">
+                    Target Pesanan:
+                  </label>
+                  <select
+                    value={allocOrder}
+                    onChange={(e) => setAllocOrder(e.target.value)}
+                    className="w-full text-xs font-bold text-celup-indigo bg-lembar border border-garis rounded p-2"
+                  >
+                    {orders.map((o) => (
+                      <option key={o.id} value={o.order_number}>
+                        {o.order_number}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-[11px] font-semibold text-teks-sekunder block mb-1">
+                    Komponen Tas / Ransel:
+                  </label>
+                  <select
+                    value={allocComponent}
+                    onChange={(e) => setAllocComponent(e.target.value)}
+                    className="w-full text-xs font-semibold text-tinta bg-lembar border border-garis rounded p-2"
+                  >
+                    <option value="Panel Depan & Saku Organizer">Panel Depan & Saku Organizer</option>
+                    <option value="Panel Belakang & Busa Tali Bahu">Panel Belakang & Busa Tali Bahu</option>
+                    <option value="Webbing Molle & Buckle Acetal">Webbing Molle & Buckle Acetal</option>
+                    <option value="Assembly Ransel Utuh & Resleting YKK">Assembly Ransel Utuh & Resleting YKK</option>
+                    <option value="Potong Pola Komplit Cordura 1000D">Potong Pola Komplit Cordura 1000D</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="flex justify-end pt-1">
+                <button
+                  onClick={handleSaveAllocation}
+                  className="px-4 py-2 bg-kapur hover:bg-kapur/90 text-celup-indigo font-bold text-xs rounded border border-celup-indigo shadow-hard flex items-center gap-1.5 transition-all"
+                >
+                  <Check className="w-4 h-4 stroke-[3]" />
+                  <span>Simpan Alokasi Mesin</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Current Allocations Table */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-celup-indigo">
+                  Daftar Penugasan Aktif Saat Ini ({Object.keys(allocations).length} Mesin Terisi):
+                </span>
+                <span className="text-[11px] text-teks-sekunder">
+                  Lini A (1-25) • Lini B (26-50) • Lini C (51-70)
+                </span>
+              </div>
+
+              <div className="max-h-60 overflow-y-auto border border-garis rounded bg-white divide-y divide-garis">
+                {Object.entries(allocations).map(([mNum, alloc]) => (
+                  <div key={mNum} className="p-3 flex items-center justify-between text-xs hover:bg-kabut/40">
+                    <div className="flex items-center gap-3">
+                      <span className="font-mono font-bold text-xs bg-kabut px-2.5 py-1 rounded text-celup-indigo border border-garis">
+                        Mesin #{mNum}
+                      </span>
+                      <div>
+                        <span className="font-bold text-tinta">{alloc.tailor}</span>
+                        <div className="text-[11px] text-teks-sekunder mt-0.5">
+                          Order: <strong className="text-celup-indigo">{alloc.orderNumber}</strong> • Komponen: <span className="font-medium">{alloc.component}</span>
+                        </div>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => {
+                        setAllocMachine(Number(mNum));
+                        setAllocTailor(alloc.tailor);
+                        setAllocOrder(alloc.orderNumber);
+                        setAllocComponent(alloc.component);
+                      }}
+                      className="px-2.5 py-1 bg-kabut hover:bg-celup-indigo hover:text-white rounded text-[11px] font-bold text-celup-indigo transition-all flex items-center gap-1"
+                    >
+                      <Edit2 className="w-3 h-3" />
+                      <span>Ubah</span>
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Sub-Mode Penjahit (Operator vs Assembly FIFO) - Catatan Tambahan 14 Okt */}
       {activeRole === "TAILOR_OPERATOR" && (
@@ -254,7 +482,7 @@ export default function ProductionTerminalPage() {
               <button
                 onClick={() => {
                   setTailorSubMode("OPERATOR");
-                  setActiveComponent("Badan Depan & Kantong Kanguru");
+                  setActiveComponent("Panel Depan & Saku Organizer");
                 }}
                 className={`px-3 py-1 rounded font-bold transition-all ${
                   tailorSubMode === "OPERATOR"
@@ -267,7 +495,7 @@ export default function ProductionTerminalPage() {
               <button
                 onClick={() => {
                   setTailorSubMode("ASSEMBLY");
-                  setActiveComponent("Assembly Kap & Finishing Utuh");
+                  setActiveComponent("Assembly Ransel Utuh & Resleting YKK");
                 }}
                 className={`px-3 py-1 rounded font-bold transition-all ${
                   tailorSubMode === "ASSEMBLY"
@@ -412,17 +640,18 @@ export default function ProductionTerminalPage() {
 
               <div>
                 <label className="text-[11px] font-semibold text-teks-sekunder block mb-0.5">
-                  Komponen Garmen:
+                  Komponen Tas / Ransel:
                 </label>
                 <select
                   value={activeComponent}
                   onChange={(e) => setActiveComponent(e.target.value)}
                   className="w-full text-xs bg-white border border-garis rounded p-2 text-tinta font-semibold"
                 >
-                  <option value="Badan Depan & Kantong Kanguru">Badan Depan & Kantong Kanguru (Jahit)</option>
-                  <option value="Lengan & Pasang Rib Manset">Lengan & Pasang Rib Manset (Jahit)</option>
-                  <option value="Assembly Kap & Finishing Utuh">Assembly Kap & Finishing Utuh (Assembly)</option>
-                  <option value="Potong Pola Komplit">Potong Pola Komplit (Cutting)</option>
+                  <option value="Panel Depan & Saku Organizer">Panel Depan & Saku Organizer (Jahit)</option>
+                  <option value="Panel Belakang & Busa Tali Bahu">Panel Belakang & Busa Tali Bahu (Jahit)</option>
+                  <option value="Webbing Molle & Buckle Acetal">Webbing Molle & Buckle Acetal (Jahit)</option>
+                  <option value="Assembly Ransel Utuh & Resleting YKK">Assembly Ransel Utuh & Resleting YKK (Assembly)</option>
+                  <option value="Potong Pola Komplit Cordura 1000D">Potong Pola Komplit Cordura 1000D (Cutting)</option>
                 </select>
               </div>
             </div>
@@ -507,8 +736,8 @@ export default function ProductionTerminalPage() {
                   Pilih nomor mesin untuk melihat penugasan atau menginput output
                 </span>
               </div>
-              <span className="text-xs font-bold text-celup-indigo bg-white px-2 py-1 rounded border border-garis">
-                Mesin Terpilih: #{selectedMachine}
+              <span className="text-xs font-bold text-celup-indigo bg-white px-2.5 py-1 rounded border border-garis">
+                Mesin Terpilih: #{selectedMachine} {allocations[selectedMachine] ? `(${allocations[selectedMachine].tailor})` : "(Belum Terisi)"}
               </span>
             </div>
 
@@ -519,22 +748,28 @@ export default function ProductionTerminalPage() {
                 // Machines 1-20 Lini A, 21-45 Lini B, 46-70 Lini C (Ekspansi UAT-02)
                 const isNewExpansion = mNum >= 61 && mNum <= 65;
                 const hasPending = mNum === 2; // Siti/Rina machine pending verification
+                const isAllocated = !!allocations[mNum];
 
                 return (
                   <button
                     key={mNum}
-                    onClick={() => setSelectedMachine(mNum)}
-                    className={`h-9 rounded-field text-xs font-bold font-mono transition-all flex flex-col items-center justify-center border ${
+                    onClick={() => handleSelectMachine(mNum)}
+                    className={`h-9 rounded-field text-xs font-bold font-mono transition-all flex flex-col items-center justify-center border relative ${
                       isSelected
                         ? "bg-kapur text-celup-indigo border-celup-indigo shadow-sm scale-105 z-10"
                         : hasPending
                         ? "border-2 border-dashed border-celup-indigo bg-lembar text-celup-indigo"
                         : isNewExpansion
                         ? "bg-white border-status-perbaikan text-status-perbaikan"
+                        : isAllocated
+                        ? "bg-white border-celup-indigo/60 text-celup-indigo"
                         : "bg-white border-garis text-tinta hover:border-celup-indigo"
                     }`}
                   >
                     <span>#{mNum}</span>
+                    {isAllocated && (
+                      <span className="w-1.5 h-1.5 rounded-full bg-status-lolos absolute bottom-1"></span>
+                    )}
                   </button>
                 );
               })}

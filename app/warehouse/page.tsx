@@ -36,26 +36,26 @@ export default function WarehousePage() {
   const [cuttingBatches, setCuttingBatches] = useState([
     {
       id: "CUT-2026-001",
-      orderNumber: "ORD-2026-001",
+      orderNumber: "ORD-2026-004",
       clientName: "Snøhund Alpine Wear",
-      material: "Taslan Milky #K-01 (Hitam)",
-      componentSet: "Badan Depan, Belakang, Lengan, Kantong",
+      material: "Cordura 1000D #C-01 (Black Olive)",
+      componentSet: "Panel Depan, Belakang, Tali Bahu, Saku Organizer, Busa Padding",
       qtyCutSets: 150,
-      cutDate: "14 Okt 2026, 09:30",
+      cutDate: "15 Okt 2026, 09:30",
       status: "Siap Dijahit Operator",
     },
     {
       id: "CUT-2026-002",
       orderNumber: "ORD-2026-002",
       clientName: "PT Bandung Apparel",
-      material: "Parasut Ribstop #P-04 (Navy)",
-      componentSet: "Badan, Lengan, Tudung Kepala, Saku Zipper",
+      material: "Ripstop Diamond Nylon 420D (Navy)",
+      componentSet: "Roll-Top Main Body, Laptop Sleeve, Saku Samping, Webbing Straps",
       qtyCutSets: 100,
-      cutDate: "14 Okt 2026, 11:15",
+      cutDate: "15 Okt 2026, 11:15",
       status: "Siap Dijahit Operator",
     },
   ]);
-  const [newCutOrder, setNewCutOrder] = useState<string>("ORD-2026-001");
+  const [newCutOrder, setNewCutOrder] = useState<string>("ORD-2026-004");
   const [newCutQty, setNewCutQty] = useState<number>(50);
 
   // Anti-Contamination Modal State (FR-6.2 & UAT-01)

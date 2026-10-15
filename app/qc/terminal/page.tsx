@@ -8,28 +8,84 @@ import {
   Award, 
   AlertTriangle,
   Sparkles,
-  Info
+  Info,
+  Clock,
+  Layers,
+  ShieldAlert,
+  Check
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 
 const DEFECT_CATEGORIES = [
-  "Jahitan Melompat / Putus",
-  "Noda Oli Mesin Permanen",
-  "Ukuran / Dimensi Tidak Sesuai Pola",
-  "Kerah / Resleting Miring",
-  "Kain Robek / Cacat Tenun",
-  "Obras Lepas / Jahitan Terbuka",
+  "Jahitan Melompat / Benang Putus (Nylon Thread)",
+  "Resleting YKK Macet / Gigi Rusak",
+  "Buckle Acetal Longgar / Patah",
+  "Jahitan Tali Bahu Tidak Simetris / Lemah",
+  "Noda Oli Mesin pada Kain Cordura",
+  "Webbing Molle Miring / Jarak Tidak Standar",
+  "Lapisan Busa Punggung Bergeser",
 ];
 
 export default function QcTerminalPage() {
   const [orders, setOrders] = useState<any[]>([]);
   const [selectedOrderId, setSelectedOrderId] = useState<string>("");
-  const [productSerial, setProductSerial] = useState<string>("");
+  const [productSerial, setProductSerial] = useState<string>("BAG-SNO-1001");
   const [selectedDefect, setSelectedDefect] = useState<string>("");
   const [defectNotes, setDefectNotes] = useState<string>("");
   const [showDefectPicker, setShowDefectPicker] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(false);
   const [lastActionMessage, setLastActionMessage] = useState<string | null>(null);
+
+  // FIFO Queue Produk Menunggu QC (QA Pak Harry Point 4)
+  const [qcQueue, setQcQueue] = useState([
+    {
+      serial: "BAG-SNO-1001",
+      orderNumber: "ORD-2026-004",
+      articleName: "Snøhund Alpine Tactical Backpack 35L",
+      assembledBy: "Meja Assembly #1 (Rina & Siti)",
+      arrivedAt: "10:35 WIB",
+      status: "WAITING",
+      isReinspection: false,
+    },
+    {
+      serial: "BAG-SNO-1002",
+      orderNumber: "ORD-2026-004",
+      articleName: "Snøhund Alpine Tactical Backpack 35L",
+      assembledBy: "Meja Assembly #1 (Rina & Siti)",
+      arrivedAt: "10:42 WIB",
+      status: "WAITING",
+      isReinspection: false,
+    },
+    {
+      serial: "BAG-SNO-0994",
+      orderNumber: "ORD-2026-004",
+      articleName: "Snøhund Alpine Tactical Backpack 35L",
+      assembledBy: "Meja Assembly #2 (Budi & Agus)",
+      arrivedAt: "10:45 WIB",
+      status: "REINSPECTION_PENDING",
+      isReinspection: true,
+      repairNote: "Perbaikan jahitan webbing molle selesai dikerjakan ulang",
+    },
+    {
+      serial: "BAG-SNO-1003",
+      orderNumber: "ORD-2026-004",
+      articleName: "Snøhund Alpine Tactical Backpack 35L",
+      assembledBy: "Meja Assembly #1 (Rina & Siti)",
+      arrivedAt: "10:50 WIB",
+      status: "WAITING",
+      isReinspection: false,
+    },
+    {
+      serial: "BAG-SNO-1004",
+      orderNumber: "ORD-2026-004",
+      articleName: "Snøhund Alpine Tactical Backpack 35L",
+      assembledBy: "Meja Assembly #2 (Budi & Agus)",
+      arrivedAt: "10:55 WIB",
+      status: "WAITING",
+      isReinspection: false,
+    },
+  ]);
+  const [activeQueueIndex, setActiveQueueIndex] = useState<number>(0);
 
   // QC Bonus Pool State (UAT-03)
   const [poolBonus, setPoolBonus] = useState<number>(600);
@@ -56,9 +112,6 @@ export default function QcTerminalPage() {
         const total = poolData.reduce((acc, row) => acc + Number(row.amount), 0);
         setPoolBonus(total);
       }
-
-      // Generate random serial for current piece
-      setProductSerial(`QC-SNO-${Math.floor(1000 + Math.random() * 9000)}`);
     } catch (err) {
       console.error("Error loading QC data:", err);
     }
@@ -76,6 +129,9 @@ export default function QcTerminalPage() {
 
     try {
       setLoading(true);
+      const currentItem = qcQueue[activeQueueIndex];
+      const isReins = currentItem?.isReinspection || false;
+
       const res = await fetch("/api/qc/inspect", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -83,7 +139,7 @@ export default function QcTerminalPage() {
           orderId: selectedOrderId || orders[0]?.id,
           productSerialTag: productSerial,
           decision,
-          defectCategory: decision !== "PASS" ? (selectedDefect || "Kerah / Resleting Miring") : null,
+          defectCategory: decision !== "PASS" ? (selectedDefect || "Resleting YKK Macet / Gigi Rusak") : null,
           defectNotes: defectNotes || null,
         }),
       });
@@ -91,23 +147,49 @@ export default function QcTerminalPage() {
       const data = await res.json();
       if (data.success) {
         if (decision === "PASS") {
-          setLastActionMessage(
-            `Unit ${productSerial} LOLOS QC! Pool Bonus bertambah +Rp 300 (Total: Rp ${(data.totalQcBonusPool || poolBonus + 300).toLocaleString("id-ID")})`
-          );
+          if (isReins) {
+            setLastActionMessage(
+              `Unit Re-inspeksi ${productSerial} LOLOS QC! Barang diteruskan ke Gudang Jadi (Bonus QC TIDAK digandakan sesuai aturan no-duplicate).`
+            );
+          } else {
+            const nextPool = data.totalQcBonusPool || poolBonus + 300;
+            setPoolBonus(nextPool);
+            setLastActionMessage(
+              `Unit ${productSerial} LOLOS QC! Pool Bonus bertambah +Rp 300 (Total: Rp ${nextPool.toLocaleString("id-ID")})`
+            );
+          }
         } else if (decision === "REPAIR") {
           setLastActionMessage(
             `Unit ${productSerial} dialihkan ke status PERBAIKAN (dikembalikan ke lini jahit). Gaji penjahit TIDAK dipotong.`
           );
         } else {
           setLastActionMessage(
-            `Unit ${productSerial} dinyatakan CACAT (${selectedDefect}). Barang dialihkan. Gaji penjahit TIDAK dipotong.`
+            `Unit ${productSerial} dinyatakan CACAT (${selectedDefect || "Resleting YKK Rusak"}). Barang dialihkan. Gaji penjahit TIDAK dipotong.`
           );
+        }
+
+        // Update queue item status
+        const updatedQueue = [...qcQueue];
+        if (updatedQueue[activeQueueIndex]) {
+          updatedQueue[activeQueueIndex] = {
+            ...updatedQueue[activeQueueIndex],
+            status: decision,
+          };
+          setQcQueue(updatedQueue);
         }
 
         setShowDefectPicker(false);
         setSelectedDefect("");
         setDefectNotes("");
-        loadQcData();
+
+        // Advance to next waiting item in FIFO queue
+        const nextIdx = updatedQueue.findIndex(
+          (item, idx) => idx > activeQueueIndex && (item.status === "WAITING" || item.status === "REINSPECTION_PENDING")
+        );
+        if (nextIdx !== -1) {
+          setActiveQueueIndex(nextIdx);
+          setProductSerial(updatedQueue[nextIdx].serial);
+        }
       }
     } catch (err: any) {
       alert("Error: " + err.message);
@@ -161,7 +243,7 @@ export default function QcTerminalPage() {
         <Info className="w-4 h-4 text-celup-indigo flex-shrink-0 mt-0.5" />
         <div>
           <strong className="text-celup-indigo">Aturan Resmi Bisnis Lukla (Asumsi #1, #2 & #4):</strong>{" "}
-          Inspeksi QC dilakukan <strong>HANYA saat barang sudah jadi pakaian utuh</strong> (hasil stasiun assembly/finishing), bukan komponen lepas. Gaji borongan penjahit <strong>TIDAK terpengaruh</strong> oleh hasil QC (*no clawback*). Unit Lolos murni menambah saldo <strong>Pool Bonus QC</strong> untuk supervisor (2 Mandor + 1 Kepala Operasional).
+          Inspeksi QC dilakukan <strong>HANYA saat barang sudah jadi 1 tas / ransel utuh</strong> (hasil stasiun assembly perakitan akhir), bukan komponen lepas. Gaji borongan penjahit <strong>TIDAK terpengaruh</strong> oleh hasil QC (*no clawback*). Unit Lolos murni menambah saldo <strong>Pool Bonus QC</strong> untuk supervisor (2 Mandor + 1 Kepala Operasional).
         </div>
       </div>
 
@@ -174,69 +256,130 @@ export default function QcTerminalPage() {
         </div>
       )}
 
-      {/* QC Live Pool Bonus Odometer & Distribution (Section 8.2 & UAT-03) */}
-      <div className="bg-lembar p-5 rounded-work border-2 border-celup-indigo shadow-hard">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-garis pb-3">
+      {/* FIFO Inspection Queue List (QA Pak Harry Point 4) */}
+      <div className="bg-lembar p-5 rounded-work border-2 border-celup-indigo/40 shadow-hard space-y-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-garis pb-2">
           <div className="flex items-center gap-2">
-            <Award className="w-5 h-5 text-status-perbaikan" />
+            <Layers className="w-4 h-4 text-celup-indigo" />
             <h2 className="text-sm font-bold text-celup-indigo">
-              Akumulasi Saldo Pool Bonus QC (UAT-03)
+              Daftar Antrean Tas Utuh Menunggu Inspeksi (FIFO Inspection Queue)
             </h2>
           </div>
-          <button
-            onClick={handleSimulateUat03}
-            className="w-full sm:w-auto px-3.5 py-1.5 bg-kabut border border-garis hover:border-celup-indigo rounded text-xs font-bold text-celup-indigo transition-all active:translate-y-0.5"
-          >
-            Simulasikan 3.000 Unit Lolos (UAT-03)
-          </button>
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] font-mono text-teks-sekunder bg-white px-2 py-0.5 rounded border border-garis">
+              QA Fix: Pak Harry #4
+            </span>
+            <span className="text-xs font-bold px-2 py-0.5 rounded bg-kapur text-celup-indigo border border-celup-indigo/30">
+              {qcQueue.filter((q) => q.status === "WAITING" || q.status === "REINSPECTION_PENDING").length} Dalam Antrean
+            </span>
+          </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
-          {/* Total Pool */}
-          <div className="bg-white p-4 rounded-field border border-garis text-center">
-            <span className="text-xs text-teks-sekunder block">Total Saldo Pool QC:</span>
-            <div className="text-3xl font-extrabold text-celup-indigo font-mono tabular-nums my-1">
-              Rp {poolBonus.toLocaleString("id-ID")}
-            </div>
-            <span className="text-[11px] text-teks-sekunder">
-              +Rp 300 per unit Lolos (PASS)
-            </span>
-          </div>
+        <div className="space-y-2">
+          {qcQueue.map((item, idx) => {
+            const isActive = activeQueueIndex === idx;
+            const isDone = item.status === "PASS" || item.status === "REPAIR" || item.status === "REJECT";
 
-          {/* Number of Recipients */}
-          <div className="bg-white p-4 rounded-field border border-garis text-center">
-            <span className="text-xs text-teks-sekunder block">Penerima Bonus (3-Arah):</span>
-            <div className="text-xl font-bold text-tinta my-1">
-              {numRecipients} Orang Pengawas
-            </div>
-            <span className="text-[11px] text-teks-sekunder block">
-              2 Mandor + 1 Kepala Operasional
-            </span>
-          </div>
+            return (
+              <div
+                key={item.serial}
+                onClick={() => {
+                  setActiveQueueIndex(idx);
+                  setProductSerial(item.serial);
+                }}
+                className={`p-3 rounded-field border text-xs cursor-pointer transition-all ${
+                  isActive
+                    ? "bg-white border-2 border-celup-indigo shadow-md scale-[1.01]"
+                    : isDone
+                    ? "bg-kabut/40 border-garis opacity-70"
+                    : "bg-white/80 border-garis hover:border-celup-indigo"
+                }`}
+              >
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div className="flex items-center gap-2.5">
+                    <span className="font-mono font-bold text-xs bg-kabut px-2 py-0.5 rounded text-celup-indigo border border-garis">
+                      {item.serial}
+                    </span>
+                    <div>
+                      <span className="font-bold text-tinta">{item.articleName}</span>
+                      <div className="text-[11px] text-teks-sekunder mt-0.5 flex flex-wrap items-center gap-2">
+                        <span>{item.assembledBy}</span>
+                        <span>•</span>
+                        <span className="flex items-center gap-1 font-mono">
+                          <Clock className="w-3 h-3 text-celup-indigo" />
+                          Masuk: {item.arrivedAt}
+                        </span>
+                        {item.isReinspection && (
+                          <span className="text-[10px] bg-status-perbaikan/20 text-status-perbaikan font-bold px-1.5 py-0.2 rounded border border-status-perbaikan/40">
+                            🔄 Unit Perbaikan Ulang
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
 
-          {/* Equal Split Result */}
-          <div className="bg-white p-4 rounded-field border-2 border-status-lolos text-center">
-            <span className="text-xs text-status-lolos font-bold block">
-              Bagian Rata per Orang (1/3):
-            </span>
-            <div className="text-3xl font-extrabold text-status-lolos font-mono tabular-nums my-1">
-              Rp {perSupervisorBonus.toLocaleString("id-ID")}
-            </div>
-            <span className="text-[11px] text-teks-sekunder">
-              Masuk ke slip penggajian Sabtu
-            </span>
-          </div>
+                  <div className="flex items-center gap-2 self-start sm:self-auto">
+                    {item.status === "WAITING" ? (
+                      <span className="text-[11px] px-2 py-1 rounded font-semibold bg-kabut text-celup-indigo border border-garis">
+                        ⏱️ Menunggu Inspeksi
+                      </span>
+                    ) : item.status === "REINSPECTION_PENDING" ? (
+                      <span className="text-[11px] px-2 py-1 rounded font-bold bg-status-perbaikan/10 text-status-perbaikan border border-status-perbaikan">
+                        🔄 Re-inspeksi (No Double Bonus)
+                      </span>
+                    ) : item.status === "PASS" ? (
+                      <span className="text-[11px] px-2 py-1 rounded font-bold bg-status-lolos text-white">
+                        ✅ LOLOS (PASS)
+                      </span>
+                    ) : item.status === "REPAIR" ? (
+                      <span className="text-[11px] px-2 py-1 rounded font-bold bg-status-perbaikan text-white">
+                        🛠️ PERBAIKAN
+                      </span>
+                    ) : (
+                      <span className="text-[11px] px-2 py-1 rounded font-bold bg-status-cacat text-white">
+                        ❌ CACAT (REJECT)
+                      </span>
+                    )}
+
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setActiveQueueIndex(idx);
+                        setProductSerial(item.serial);
+                      }}
+                      className={`px-2.5 py-1 rounded text-[11px] font-bold transition-all ${
+                        isActive
+                          ? "bg-celup-indigo text-white shadow-sm"
+                          : "bg-white border border-garis text-celup-indigo hover:bg-kabut"
+                      }`}
+                    >
+                      {isActive ? "● Sedang Diperiksa" : "Pilih"}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
 
       {/* 3 Giant Inspection Buttons (Section 8.2 of DESIGN_SYSTEM.md) */}
       <div className="bg-lembar p-5 rounded-work border border-garis shadow-hard space-y-4">
+        {qcQueue[activeQueueIndex]?.isReinspection && (
+          <div className="p-3 bg-status-perbaikan/10 border-2 border-status-perbaikan rounded-field text-xs text-status-perbaikan font-bold flex items-center gap-2">
+            <ShieldAlert className="w-4 h-4 flex-shrink-0" />
+            <span>
+              PERINGATAN RE-INSPEKSI: Unit ini merupakan produk hasil perbaikan (re-work). Jika LOLOS, unit diteruskan ke gudang barang jadi TANPA penambahan bonus ganda (+Rp 0).
+            </span>
+          </div>
+        )}
+
         <div className="flex items-center justify-between border-b border-garis pb-2">
           <span className="text-xs font-bold text-celup-indigo font-mono">
             Tag Produk Utuh: <strong className="text-tinta">{productSerial}</strong>
           </span>
           <span className="text-xs text-teks-sekunder">
-            Inspeksi 1 Produk Utuh (Barang Jadi)
+            Inspeksi 1 Produk Ransel Utuh (Barang Jadi)
           </span>
         </div>
 

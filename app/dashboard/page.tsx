@@ -10,7 +10,11 @@ import {
   ArrowUpRight, 
   Sparkles,
   Users,
-  Timer
+  Timer,
+  Check,
+  X,
+  Clock,
+  FileText
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { ThreadEdge, ClientTag } from "@/components/Design/ThreadEdge";
@@ -33,11 +37,54 @@ export default function DashboardPage() {
     contaminationBlocks: 0,
     qcPoolBonus: 600,
   });
+
   const [recentOrders, setRecentOrders] = useState<any[]>([]);
   const [pendingVerifications, setPendingVerifications] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const [pendingMassOrders, setPendingMassOrders] = useState<any[]>([
+    {
+      orderNumber: "ORD-2026-004",
+      clientCode: "SNOHUND",
+      clientName: "Snøhund Alpine Wear",
+      article: "Snøhund Alpine Tactical Backpack 35L",
+      scheme: "FULL_PACKAGE",
+      targetQty: 500,
+      inheritedVersion: "v2 (Approved)",
+      inheritedSmv: "18m 30s",
+      inheritedFabric: "1.45 m Cordura 1000D / pcs",
+      status: "PENDING_OWNER_APPROVAL",
+      createdAt: "15 Okt 2026, 14:00",
+    }
+  ]);
+
+  const handleOwnerApproval = (orderNum: string, decision: "APPROVED" | "REJECTED") => {
+    const updated = pendingMassOrders.map((o) =>
+      o.orderNumber === orderNum ? { ...o, status: decision } : o
+    );
+    setPendingMassOrders(updated);
+    try {
+      localStorage.setItem("lukla_pending_orders", JSON.stringify(updated));
+    } catch {}
+
+    if (decision === "APPROVED") {
+      alert(`Order ${orderNum} TELAH RESMI DISETUJUI OLEH OWNER! Status pesanan kini ACTIVE, Rate Card terkunci, dan instruksi kerja diteruskan ke Kepala Operasional & Meja Potong Gudang.`);
+    } else {
+      alert(`Order ${orderNum} DITOLAK oleh Owner. Proses produksi dibatalkan.`);
+    }
+  };
+
   useEffect(() => {
+    try {
+      const stored = localStorage.getItem("lukla_pending_orders");
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (parsed.length > 0) {
+          setPendingMassOrders(parsed);
+        }
+      }
+    } catch {}
+
     async function loadDashboardData() {
       try {
         // Fetch orders
@@ -194,6 +241,119 @@ export default function DashboardPage() {
           <div className="mt-2 text-[11px] text-teks-sekunder">
             Validasi kecocokan bahan & pesanan (FR-6.2)
           </div>
+        </div>
+      </div>
+
+      {/* Owner Mass Order Approval Queue (QA Pak Harry Point 2) */}
+      <div className="bg-lembar rounded-work border-2 border-celup-indigo/40 p-4 sm:p-5 shadow-hard">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-garis pb-3 mb-4">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-full bg-kapur flex items-center justify-center font-bold text-celup-indigo border border-celup-indigo/30 text-sm">
+              👑
+            </div>
+            <div>
+              <h2 className="text-sm sm:text-base font-bold text-celup-indigo flex items-center gap-2">
+                Antrean Persetujuan Pesanan Massal (Wewenang Tunggal Owner)
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-kapur text-celup-indigo font-bold border border-celup-indigo/30">
+                  {pendingMassOrders.filter((o) => o.status === "PENDING_OWNER_APPROVAL").length} Menunggu
+                </span>
+              </h2>
+              <p className="text-xs text-teks-sekunder">
+                Persetujuan Owner mengunci Rate Card, SMV, dan BOM sampel approved sebelum pesanan dieksekusi Gudang & Lini Jahit.
+              </p>
+            </div>
+          </div>
+          <span className="text-[11px] font-mono text-teks-sekunder bg-white px-2.5 py-1 rounded border border-garis self-start sm:self-auto">
+            QA Fix: Pak Harry #2
+          </span>
+        </div>
+
+        <div className="space-y-3">
+          {pendingMassOrders.map((order, idx) => (
+            <div
+              key={idx}
+              className={`p-3.5 rounded-work border transition-all ${
+                order.status === "PENDING_OWNER_APPROVAL"
+                  ? "bg-white border-celup-indigo/40 shadow-sm"
+                  : order.status === "APPROVED"
+                  ? "bg-status-lolos/5 border-status-lolos/30"
+                  : "bg-status-cacat/5 border-status-cacat/30 opacity-70"
+              }`}
+            >
+              <ThreadEdge clientCode={order.clientCode} className="pl-3">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+                  <div className="space-y-1.5 flex-1 min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <ClientTag clientCode={order.clientCode} clientName={order.clientName} />
+                      <span className="font-mono text-xs font-bold text-celup-indigo bg-kabut px-2 py-0.5 rounded">
+                        {order.orderNumber}
+                      </span>
+                      <span className="text-[11px] font-bold px-2 py-0.5 rounded bg-celup-indigo text-white">
+                        {order.scheme}
+                      </span>
+                      <span className="text-xs text-teks-sekunder">
+                        Diterbitkan: {order.createdAt}
+                      </span>
+                    </div>
+
+                    <div className="text-sm font-bold text-tinta">
+                      {order.article}
+                    </div>
+
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs text-teks-sekunder pt-1">
+                      <div className="bg-lembar px-2.5 py-1 rounded border border-garis">
+                        <span className="block text-[10px] uppercase font-semibold text-teks-sekunder">Target Volume</span>
+                        <span className="font-mono font-bold text-celup-indigo">{order.targetQty} pcs</span>
+                      </div>
+                      <div className="bg-lembar px-2.5 py-1 rounded border border-garis">
+                        <span className="block text-[10px] uppercase font-semibold text-teks-sekunder">Versi Sampel</span>
+                        <span className="font-bold text-status-lolos">{order.inheritedVersion}</span>
+                      </div>
+                      <div className="bg-lembar px-2.5 py-1 rounded border border-garis">
+                        <span className="block text-[10px] uppercase font-semibold text-teks-sekunder">Kunci SMV</span>
+                        <span className="font-mono font-bold text-tinta">{order.inheritedSmv}</span>
+                      </div>
+                      <div className="bg-lembar px-2.5 py-1 rounded border border-garis">
+                        <span className="block text-[10px] uppercase font-semibold text-teks-sekunder">Bahan Baku (BOM)</span>
+                        <span className="font-bold text-tinta truncate">{order.inheritedFabric}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex sm:flex-col items-center justify-end gap-2 pt-2 md:pt-0 border-t md:border-t-0 border-garis">
+                    {order.status === "PENDING_OWNER_APPROVAL" ? (
+                      <>
+                        <button
+                          onClick={() => handleOwnerApproval(order.orderNumber, "APPROVED")}
+                          className="w-full sm:w-auto px-4 py-2 rounded-work bg-status-lolos hover:bg-status-lolos/90 text-white text-xs font-bold shadow-hard flex items-center justify-center gap-1.5 transition-all min-h-[42px]"
+                        >
+                          <Check className="w-4 h-4" />
+                          <span>Setujui Order</span>
+                        </button>
+                        <button
+                          onClick={() => handleOwnerApproval(order.orderNumber, "REJECTED")}
+                          className="w-full sm:w-auto px-4 py-2 rounded-work bg-white border border-status-cacat text-status-cacat hover:bg-status-cacat hover:text-white text-xs font-bold transition-all min-h-[38px] flex items-center justify-center gap-1.5"
+                        >
+                          <X className="w-4 h-4" />
+                          <span>Tolak</span>
+                        </button>
+                      </>
+                    ) : order.status === "APPROVED" ? (
+                      <span className="px-3 py-1.5 rounded-work bg-status-lolos/15 border border-status-lolos text-status-lolos text-xs font-bold flex items-center gap-1.5">
+                        <CheckCircle2 className="w-4 h-4" />
+                        Disetujui (Aktif di Pabrik)
+                      </span>
+                    ) : (
+                      <span className="px-3 py-1.5 rounded-work bg-status-cacat/15 border border-status-cacat text-status-cacat text-xs font-bold flex items-center gap-1.5">
+                        <AlertTriangle className="w-4 h-4" />
+                        Ditolak Owner
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </ThreadEdge>
+            </div>
+          ))}
         </div>
       </div>
 

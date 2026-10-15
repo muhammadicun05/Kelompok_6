@@ -43,7 +43,7 @@ export default function B2bPortalPage() {
             Status Pesanan: ORD-2026-002
           </h1>
           <p className="text-xs text-teks-sekunder">
-            Artikel: <strong>Urban Windbreaker Parka</strong> • Skema: <strong>SEMI_CMT</strong> • Target: <strong>1.000 pcs</strong>
+            Artikel: <strong>Urban Commuter Roll-Top Backpack 25L</strong> • Skema: <strong>SEMI_CMT</strong> • Target: <strong>1.000 pcs</strong>
           </p>
         </div>
 
@@ -206,8 +206,8 @@ export default function B2bPortalPage() {
             </thead>
             <tbody className="divide-y divide-garis">
               <tr className="hover:bg-white">
-                <td className="py-3 font-mono font-bold text-celup-indigo">RAW-KLA-TASLAN-02</td>
-                <td className="py-3 font-semibold text-tinta">Taslan Milky Waterproof Black</td>
+                <td className="py-3 font-mono font-bold text-celup-indigo">RAW-KLA-CORDURA-01</td>
+                <td className="py-3 font-semibold text-tinta">Cordura 1000D Waterproof Black Olive</td>
                 <td className="py-3 text-right font-mono tabular-nums">1.500 Yard</td>
                 <td className="py-3 text-right font-mono tabular-nums text-teks-sekunder">100 Yard</td>
                 <td className="py-3 text-right font-mono font-extrabold text-status-lolos tabular-nums">

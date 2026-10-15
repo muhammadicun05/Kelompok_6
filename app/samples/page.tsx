@@ -27,30 +27,39 @@ export default function SamplesPage() {
   // Digital Stopwatch State (Section 8.4)
   const [seconds, setSeconds] = useState(0);
   const [isRunning, setIsRunning] = useState(false);
-  const [activeComponent, setActiveComponent] = useState("Pasang Lengan & Rib");
+  const [activeComponent, setActiveComponent] = useState("Panel Depan & Saku Organizer Zipper");
 
-  // Sample Articles with Versioning (v1, v2)
+  // Sample Articles with Versioning (v1, v2) - Tas / Ransel Domain
   const [versions, setVersions] = useState<VersionItem[]>([
     {
       version: 1,
       status: "REJECTED",
       date: "10 Okt 2026",
-      fabricConsumption: "2.1 yard/pcs (Pola Lengan Sempit)",
-      smvMinutes: "12m 00s",
-      notes: "Fitting lingkar lengan sempit, boros konsumsi kain.",
+      fabricConsumption: "1.75 meter Cordura 1000D (Pola Boros & Saku Miring)",
+      smvMinutes: "21m 30s",
+      notes: "Fitting tali bahu kurang ergonomis, saku organizer miring, efisiensi bahan rendah.",
       isApproved: false,
     },
     {
       version: 2,
       status: "APPROVED",
       date: "12 Okt 2026",
-      fabricConsumption: "1.85 yard/pcs (Efisiensi Pola)",
-      smvMinutes: "11m 00s",
-      notes: "Lingkar lengan diperlebar 2cm, layout pola dipadatkan.",
+      fabricConsumption: "1.45 meter Cordura 1000D + 0.65m Furing (Efisiensi Pola)",
+      smvMinutes: "18m 30s",
+      notes: "Pola panel dipadatkan, jahitan bar-tack tali bahu diperkuat, lolos uji beban 15 kg.",
       isApproved: true,
     },
   ]);
 
+  // Active Sample being measured in Studio
+  const [activeSample, setActiveSample] = useState({
+    id: "CLM-2026-001",
+    clientCode: "SNOHUND",
+    clientName: "Snøhund Alpine Wear",
+    articleName: "Snøhund Alpine Tactical Backpack 35L",
+    scheme: "FULL_PACKAGE",
+    skuCode: "SNO-BP-35L",
+  });
 
   // Intake Klaim / Spesifikasi Sampel Klien oleh Tim Sampler
   const [showClaimForm, setShowClaimForm] = useState(false);
@@ -58,28 +67,37 @@ export default function SamplesPage() {
     clientCode: "KLIEN_A",
     clientName: "PT Bandung Apparel",
     claimNumber: "CLM-2026-003",
-    articleName: "Urban Windbreaker Lightweight",
+    articleName: "Urban Commuter Roll-Top Backpack 25L",
     targetScheme: "SEMI_CMT",
-    notes: "Permintaan sampel revisi tudung kepala & zipper waterproof YKK.",
+    notes: "Permintaan sampel ransel roll-top dengan saku laptop busa & buckle magnetic.",
   });
   const [registeredClaims, setRegisteredClaims] = useState([
     {
       id: "CLM-2026-001",
       clientCode: "SNOHUND",
       clientName: "Snøhund Alpine Wear",
-      articleName: "Snøhund Alpine Heavy Hoodie",
+      articleName: "Snøhund Alpine Tactical Backpack 35L",
       scheme: "FULL_PACKAGE",
       date: "08 Okt 2026",
-      status: "Disetujui (v2 Approved)",
+      status: "Disetujui (Approved v2)",
     },
     {
       id: "CLM-2026-002",
       clientCode: "KLIEN_A",
       clientName: "PT Bandung Apparel",
-      articleName: "Urban Windbreaker Parka",
+      articleName: "Urban Commuter Roll-Top Backpack 25L",
       scheme: "SEMI_CMT",
       date: "11 Okt 2026",
       status: "Uji Stopwatch (v1)",
+    },
+    {
+      id: "CLM-2026-003",
+      clientCode: "KLIEN_B",
+      clientName: "CV Priangan Outdoor",
+      articleName: "Summit Expedition Backpack 50L",
+      scheme: "CMT",
+      date: "13 Okt 2026",
+      status: "Menunggu Uji SMV",
     },
   ]);
 
@@ -91,12 +109,26 @@ export default function SamplesPage() {
       clientName: claimForm.clientCode === "SNOHUND" ? "Snøhund Alpine Wear" : claimForm.clientCode === "KLIEN_A" ? "PT Bandung Apparel" : "CV Priangan Outdoor",
       articleName: claimForm.articleName,
       scheme: claimForm.targetScheme,
-      date: "14 Okt 2026",
+      date: "15 Okt 2026",
       status: "Menunggu Studi Waktu",
     };
     setRegisteredClaims([newClaim, ...registeredClaims]);
     setShowClaimForm(false);
-    alert(`Klaim/permintaan sampel ${claimForm.claimNumber} (${claimForm.articleName}) berhasil didaftarkan oleh Tim Sampler ke dalam sistem!`);
+    alert(`Klaim/permintaan sampel ransel ${claimForm.claimNumber} (${claimForm.articleName}) berhasil didaftarkan oleh Tim Sampler ke dalam sistem!`);
+  };
+
+  const handleSelectSample = (sample: typeof registeredClaims[0]) => {
+    setActiveSample({
+      id: sample.id,
+      clientCode: sample.clientCode,
+      clientName: sample.clientName,
+      articleName: sample.articleName,
+      scheme: sample.scheme,
+      skuCode: sample.clientCode === "SNOHUND" ? "SNO-BP-35L" : `${sample.clientCode}-BP-01`,
+    });
+    setSeconds(0);
+    setIsRunning(false);
+    alert(`Sampel aktif diubah menjadi: "${sample.articleName}" (${sample.id}). Stopwatch & BOM siap diuji!`);
   };
 
   // Timer Interval Effect
@@ -121,21 +153,34 @@ export default function SamplesPage() {
   const [convertedOrder, setConvertedOrder] = useState<any | null>(null);
   const [ownerApprovalStatus, setOwnerApprovalStatus] = useState<"PENDING" | "APPROVED" | "REJECTED">("PENDING");
   const [isClientAccountActive, setIsClientAccountActive] = useState<boolean>(false);
-  const [selectedScheme, setSelectedScheme] = useState("SEMI_CMT");
+  const [selectedScheme, setSelectedScheme] = useState("FULL_PACKAGE");
 
   const handleConvertToMassOrder = () => {
-    setConvertedOrder({
+    const orderData = {
       orderNumber: `ORD-2026-004`,
       scheme: selectedScheme,
-      article: "Snøhund Alpine Heavy Hoodie",
-      targetQty: 600,
-      inheritedVersion: "v2",
-      inheritedSmv: "11m 00s",
-      inheritedFabric: "1.85 yard/pcs",
+      clientName: activeSample.clientName,
+      clientCode: activeSample.clientCode,
+      article: activeSample.articleName,
+      targetQty: 500,
+      inheritedVersion: "v2 (Approved)",
+      inheritedSmv: "18m 30s",
+      inheritedFabric: "1.45 m Cordura 1000D / pcs",
       status: "PENDING_OWNER_APPROVAL",
-    });
+      createdAt: new Date().toISOString(),
+    };
+    setConvertedOrder(orderData);
     setOwnerApprovalStatus("PENDING");
     setIsClientAccountActive(false);
+
+    // Save draft order to localStorage so Owner Dashboard can pick it up immediately
+    try {
+      const existing = JSON.parse(localStorage.getItem("lukla_pending_orders") || "[]");
+      const filtered = existing.filter((o: any) => o.orderNumber !== orderData.orderNumber);
+      localStorage.setItem("lukla_pending_orders", JSON.stringify([orderData, ...filtered]));
+    } catch {}
+
+    alert(`Draft Pesanan Massal ${orderData.orderNumber} (${orderData.article}) berhasil diterbitkan oleh Sampler! Status saat ini: Menunggu Persetujuan Owner di Dashboard Owner.`);
   };
 
   return (
@@ -271,7 +316,101 @@ export default function SamplesPage() {
       <div className="p-3 bg-white border-l-4 border-celup-indigo rounded-field shadow-hard text-xs text-tinta flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
         <div>
           <strong className="text-celup-indigo">Wewenang Operasional Tim Sampler:</strong>{" "}
-          1) Pendaftaran klaim/spesifikasi klien ke sistem • 2) Studi waktu per komponen (SMV & BOM) • 3) Penerbitan <strong>Order Produksi Massal</strong> setelah sampel berstatus Disetujui (Approved).
+          1) Pendaftaran klaim/spesifikasi klien ke sistem • 2) Studi waktu per komponen tas ransel (SMV & BOM) • 3) Penerbitan <strong>Order Produksi Massal</strong> setelah sampel berstatus Disetujui (Approved).
+        </div>
+      </div>
+
+      {/* Pak Harry Issue #1: List Sampel & Pemilihan Sampel Aktif */}
+      <div className="bg-white p-4 sm:p-5 rounded-work border border-garis shadow-hard space-y-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-garis pb-2.5">
+          <div>
+            <h2 className="text-sm font-bold text-celup-indigo flex items-center gap-2">
+              <span>📋 Daftar Sampel & Klaim Klien (Pilih untuk Diuji di Stopwatch)</span>
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-status-lolos/15 text-status-lolos font-bold font-mono">
+                {registeredClaims.length} Artikel Ransel
+              </span>
+            </h2>
+            <p className="text-xs text-teks-sekunder">
+              Klik tombol &quot;Pilih &amp; Uji&quot; pada salah satu sampel di bawah untuk memuat spesifikasi dan menguji studi waktu (SMV)
+            </p>
+          </div>
+          <div className="text-xs">
+            <span className="text-teks-sekunder">Sampel Aktif: </span>
+            <span className="font-bold text-celup-indigo bg-kabut px-2 py-1 rounded">
+              {activeSample.articleName} ({activeSample.id})
+            </span>
+          </div>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full text-xs text-left">
+            <thead>
+              <tr className="bg-lembar text-teks-sekunder border-b border-garis">
+                <th className="p-2.5">No. Klaim / ID</th>
+                <th className="p-2.5">Klien</th>
+                <th className="p-2.5">Artikel Tas / Ransel</th>
+                <th className="p-2.5">Skema</th>
+                <th className="p-2.5">Tanggal</th>
+                <th className="p-2.5">Status Persetujuan</th>
+                <th className="p-2.5 text-right">Aksi Sampler</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-garis">
+              {registeredClaims.map((claim) => {
+                const isSelected = activeSample.id === claim.id;
+                return (
+                  <tr
+                    key={claim.id}
+                    className={`transition-colors ${
+                      isSelected ? "bg-kapur/20 font-medium" : "hover:bg-lembar"
+                    }`}
+                  >
+                    <td className="p-2.5 font-mono font-bold text-celup-indigo">
+                      {claim.id}
+                    </td>
+                    <td className="p-2.5">
+                      <ClientTag clientCode={claim.clientCode} clientName={claim.clientName} />
+                    </td>
+                    <td className="p-2.5 font-semibold text-tinta">
+                      {claim.articleName}
+                    </td>
+                    <td className="p-2.5">
+                      <span className="font-mono text-[11px] px-1.5 py-0.5 rounded bg-kabut border border-garis">
+                        {claim.scheme}
+                      </span>
+                    </td>
+                    <td className="p-2.5 text-teks-sekunder font-mono text-[11px]">
+                      {claim.date}
+                    </td>
+                    <td className="p-2.5">
+                      <span className={`text-[11px] px-2 py-0.5 rounded-full font-semibold ${
+                        claim.status.includes("Approved") || claim.status.includes("Disetujui")
+                          ? "bg-status-lolos/15 text-status-lolos border border-status-lolos/30"
+                          : "bg-amber-100 text-amber-900 border border-amber-300"
+                      }`}>
+                        {claim.status}
+                      </span>
+                    </td>
+                    <td className="p-2.5 text-right">
+                      {isSelected ? (
+                        <span className="inline-flex items-center gap-1 text-[11px] font-bold text-status-lolos bg-status-lolos/10 px-2.5 py-1 rounded border border-status-lolos">
+                          <Check className="w-3.5 h-3.5" />
+                          <span>Aktif di Stopwatch</span>
+                        </span>
+                      ) : (
+                        <button
+                          onClick={() => handleSelectSample(claim)}
+                          className="px-2.5 py-1 bg-celup-indigo text-white rounded text-[11px] font-semibold hover:bg-celup-indigo/90 shadow-sm transition-all"
+                        >
+                          ⏱️ Pilih &amp; Uji
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
       </div>
 
@@ -282,14 +421,14 @@ export default function SamplesPage() {
             <div className="flex items-center justify-between mb-4 border-b border-garis pb-3">
               <div>
                 <h2 className="text-sm font-bold text-celup-indigo">
-                  Histori Versi Sampel (v1 → v2)
+                  Histori Versi Sampel (v1 → vN) — {activeSample.articleName}
                 </h2>
                 <span className="text-xs text-teks-sekunder">
                   Pola tidak menimpa versi lama (*non-destructive versioning*)
                 </span>
               </div>
               <span className="text-xs font-semibold px-2 py-1 rounded bg-status-lolos text-white">
-                v2 Disetujui
+                v2 Disetujui (Approved)
               </span>
             </div>
 
@@ -506,10 +645,13 @@ export default function SamplesPage() {
               onChange={(e) => setActiveComponent(e.target.value)}
               className="text-xs font-bold text-celup-indigo bg-white border border-garis px-3 py-1.5 rounded-field mb-4 w-full"
             >
-              <option value="Pasang Lengan & Rib">Pasang Lengan & Rib</option>
-              <option value="Badan Depan & Kantong Kanguru">Badan Depan & Kantong Kanguru</option>
-              <option value="Assembly Kap Hoodie">Assembly Kap Hoodie</option>
-              <option value="Potong Taslan Pola Komplit">Potong Taslan Pola Komplit</option>
+              <option value="Panel Depan & Saku Organizer Zipper">Panel Depan &amp; Saku Organizer Zipper</option>
+              <option value="Panel Belakang & Busa Punggung Ergonomis">Panel Belakang &amp; Busa Punggung Ergonomis</option>
+              <option value="Tali Bahu (Shoulder Straps) & Sternum Strap">Tali Bahu (Shoulder Straps) &amp; Sternum Strap</option>
+              <option value="Saku Samping Mesh & Tali Kompresi">Saku Samping Mesh &amp; Tali Kompresi</option>
+              <option value="Tutup Kompartemen & Acetal Buckle 25mm">Tutup Kompartemen &amp; Acetal Buckle 25mm</option>
+              <option value="Perakitan Tas Utuh (Assembly Kompartemen & Lining)">Perakitan Tas Utuh (Assembly Kompartemen &amp; Lining)</option>
+              <option value="Potong Bahan Cordura 1000D Pola Ransel">Potong Bahan Cordura 1000D Pola Ransel</option>
             </select>
 
             {/* Giant Stopwatch Display (64px) */}

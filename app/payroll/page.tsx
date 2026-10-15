@@ -111,26 +111,26 @@ export default function PayrollPage() {
       clientName: "Snøhund (Internal Brand)",
       clientEmail: "ops@snohund.co",
       clientAddress: "Bandung, Jawa Barat",
-      articleName: "Winter Parka V2 (Heavyweight)",
-      scheme: "SEMI_CMT",
+      articleName: "Snøhund Alpine Tactical Backpack 35L",
+      scheme: "FULL_PACKAGE",
       quantity: 500,
-      cuttingRate: 1500,
-      sewingRate: 12000,
+      cuttingRate: 2500,
+      sewingRate: 18500,
       materialsCharge: 1850000,
-      finishingRate: 1000
+      finishingRate: 1500
     },
     "ORD-2026-003": {
       orderId: "ORD-2026-003",
       clientName: "PT Bintang Tekstil Mandiri",
       clientEmail: "procurement@bintangtekstil.id",
       clientAddress: "Kawasan Industri Cimahi, Jawa Barat",
-      articleName: "Kemeja Flanel Workshirt",
+      articleName: "Urban Commuter Roll-Top Backpack 25L",
       scheme: "CMT",
       quantity: 1200,
-      cuttingRate: 1200,
-      sewingRate: 8500,
+      cuttingRate: 1800,
+      sewingRate: 12500,
       materialsCharge: 0,
-      finishingRate: 800
+      finishingRate: 1000
     }
   };
 
