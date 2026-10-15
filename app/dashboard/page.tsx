@@ -19,6 +19,13 @@ import {
 import { supabase } from "@/lib/supabase";
 import { ThreadEdge, ClientTag } from "@/components/Design/ThreadEdge";
 import { UniversalFilterBar, FilterState } from "@/components/Design/UniversalFilterBar";
+import { 
+  getPendingMassOrders, 
+  approveMassOrder, 
+  rejectMassOrder, 
+  getLiveQcPoolBonus,
+  MassOrder 
+} from "@/lib/dataBus";
 
 export default function DashboardPage() {
   const [filter, setFilter] = useState<FilterState>({
@@ -42,48 +49,32 @@ export default function DashboardPage() {
   const [pendingVerifications, setPendingVerifications] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const [pendingMassOrders, setPendingMassOrders] = useState<any[]>([
-    {
-      orderNumber: "ORD-2026-004",
-      clientCode: "SNOHUND",
-      clientName: "Snøhund Alpine Wear",
-      article: "Snøhund Alpine Tactical Backpack 35L",
-      scheme: "FULL_PACKAGE",
-      targetQty: 500,
-      inheritedVersion: "v2 (Approved)",
-      inheritedSmv: "18m 30s",
-      inheritedFabric: "1.45 m Cordura 1000D / pcs",
-      status: "PENDING_OWNER_APPROVAL",
-      createdAt: "15 Okt 2026, 14:00",
-    }
-  ]);
+  const [pendingMassOrders, setPendingMassOrders] = useState<MassOrder[]>([]);
 
   const handleOwnerApproval = (orderNum: string, decision: "APPROVED" | "REJECTED") => {
-    const updated = pendingMassOrders.map((o) =>
-      o.orderNumber === orderNum ? { ...o, status: decision } : o
-    );
-    setPendingMassOrders(updated);
-    try {
-      localStorage.setItem("lukla_pending_orders", JSON.stringify(updated));
-    } catch {}
-
     if (decision === "APPROVED") {
-      alert(`Order ${orderNum} TELAH RESMI DISETUJUI OLEH OWNER! Status pesanan kini ACTIVE, Rate Card terkunci, dan instruksi kerja diteruskan ke Kepala Operasional & Meja Potong Gudang.`);
+      approveMassOrder(orderNum);
+      alert(`Order ${orderNum} TELAH RESMI DISETUJUI OLEH OWNER! Status pesanan kini ACTIVE, Rate Card terkunci, dan pesanan otomatis aktif di Meja Potong Gudang serta Lini Jahit.`);
     } else {
+      rejectMassOrder(orderNum);
       alert(`Order ${orderNum} DITOLAK oleh Owner. Proses produksi dibatalkan.`);
     }
+    setPendingMassOrders(getPendingMassOrders());
   };
 
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem("lukla_pending_orders");
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        if (parsed.length > 0) {
-          setPendingMassOrders(parsed);
-        }
-      }
-    } catch {}
+    const refreshData = () => {
+      setPendingMassOrders(getPendingMassOrders());
+      const livePool = getLiveQcPoolBonus(stats.qcPoolBonus || 600);
+      setStats((prev) => ({ ...prev, qcPoolBonus: livePool }));
+    };
+
+    refreshData();
+
+    // Cross-component & cross-tab real-time listener
+    const handleBusUpdate = () => refreshData();
+    window.addEventListener("lukla_bus_update", handleBusUpdate);
+    window.addEventListener("storage", handleBusUpdate);
 
     async function loadDashboardData() {
       try {
@@ -133,6 +124,11 @@ export default function DashboardPage() {
     }
 
     loadDashboardData();
+
+    return () => {
+      window.removeEventListener("lukla_bus_update", handleBusUpdate);
+      window.removeEventListener("storage", handleBusUpdate);
+    };
   }, []);
 
   return (

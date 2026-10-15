@@ -15,6 +15,14 @@ import {
   Check
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
+import { 
+  getQcQueue, 
+  updateQcQueueItem, 
+  getLiveQcPoolBonus, 
+  incrementLiveQcPoolBonus, 
+  getApprovedMassOrders, 
+  QcQueueItem 
+} from "@/lib/dataBus";
 
 const DEFECT_CATEGORIES = [
   "Jahitan Melompat / Benang Putus (Nylon Thread)",
@@ -37,54 +45,7 @@ export default function QcTerminalPage() {
   const [lastActionMessage, setLastActionMessage] = useState<string | null>(null);
 
   // FIFO Queue Produk Menunggu QC (QA Pak Harry Point 4)
-  const [qcQueue, setQcQueue] = useState([
-    {
-      serial: "BAG-SNO-1001",
-      orderNumber: "ORD-2026-004",
-      articleName: "Snøhund Alpine Tactical Backpack 35L",
-      assembledBy: "Meja Assembly #1 (Rina & Siti)",
-      arrivedAt: "10:35 WIB",
-      status: "WAITING",
-      isReinspection: false,
-    },
-    {
-      serial: "BAG-SNO-1002",
-      orderNumber: "ORD-2026-004",
-      articleName: "Snøhund Alpine Tactical Backpack 35L",
-      assembledBy: "Meja Assembly #1 (Rina & Siti)",
-      arrivedAt: "10:42 WIB",
-      status: "WAITING",
-      isReinspection: false,
-    },
-    {
-      serial: "BAG-SNO-0994",
-      orderNumber: "ORD-2026-004",
-      articleName: "Snøhund Alpine Tactical Backpack 35L",
-      assembledBy: "Meja Assembly #2 (Budi & Agus)",
-      arrivedAt: "10:45 WIB",
-      status: "REINSPECTION_PENDING",
-      isReinspection: true,
-      repairNote: "Perbaikan jahitan webbing molle selesai dikerjakan ulang",
-    },
-    {
-      serial: "BAG-SNO-1003",
-      orderNumber: "ORD-2026-004",
-      articleName: "Snøhund Alpine Tactical Backpack 35L",
-      assembledBy: "Meja Assembly #1 (Rina & Siti)",
-      arrivedAt: "10:50 WIB",
-      status: "WAITING",
-      isReinspection: false,
-    },
-    {
-      serial: "BAG-SNO-1004",
-      orderNumber: "ORD-2026-004",
-      articleName: "Snøhund Alpine Tactical Backpack 35L",
-      assembledBy: "Meja Assembly #2 (Budi & Agus)",
-      arrivedAt: "10:55 WIB",
-      status: "WAITING",
-      isReinspection: false,
-    },
-  ]);
+  const [qcQueue, setQcQueue] = useState<QcQueueItem[]>([]);
   const [activeQueueIndex, setActiveQueueIndex] = useState<number>(0);
 
   // QC Bonus Pool State (UAT-03)
@@ -93,25 +54,35 @@ export default function QcTerminalPage() {
 
   const loadQcData = async () => {
     try {
+      // 1. Fetch orders from Supabase + combine with approved mass orders from dataBus
       const { data: ords } = await supabase
         .from("orders")
         .select("*, clients(*)")
         .order("created_at", { ascending: false });
 
-      if (ords && ords.length > 0) {
-        setOrders(ords);
-        if (!selectedOrderId) setSelectedOrderId(ords[0].id);
+      const busOrders = getApprovedMassOrders().map((bo) => ({
+        id: bo.id || bo.orderNumber,
+        order_number: bo.orderNumber,
+        article_name: bo.article,
+        clients: { client_code: bo.clientCode, name: bo.clientName },
+      }));
+
+      const combinedOrders = [...busOrders, ...(ords || [])];
+      if (combinedOrders.length > 0) {
+        setOrders(combinedOrders);
+        if (!selectedOrderId) setSelectedOrderId(combinedOrders[0].id);
       }
 
-      // Fetch QC Pool total
-      const { data: poolData } = await supabase
-        .from("qc_bonus_ledger")
-        .select("amount");
-
-      if (poolData) {
-        const total = poolData.reduce((acc, row) => acc + Number(row.amount), 0);
-        setPoolBonus(total);
+      // 2. Sync FIFO Queue from dataBus
+      const busQueue = getQcQueue();
+      setQcQueue(busQueue);
+      if (busQueue.length > 0) {
+        setProductSerial(busQueue[activeQueueIndex]?.serial || busQueue[0].serial);
       }
+
+      // 3. Sync live Pool Bonus
+      const livePool = getLiveQcPoolBonus(600);
+      setPoolBonus(livePool);
     } catch (err) {
       console.error("Error loading QC data:", err);
     }
@@ -119,7 +90,24 @@ export default function QcTerminalPage() {
 
   useEffect(() => {
     loadQcData();
-  }, []);
+
+    const handleBusUpdate = () => {
+      const q = getQcQueue();
+      setQcQueue(q);
+      setPoolBonus(getLiveQcPoolBonus());
+      if (q.length > 0 && activeQueueIndex < q.length) {
+        setProductSerial(q[activeQueueIndex].serial);
+      }
+    };
+
+    window.addEventListener("lukla_bus_update", handleBusUpdate);
+    window.addEventListener("storage", handleBusUpdate);
+
+    return () => {
+      window.removeEventListener("lukla_bus_update", handleBusUpdate);
+      window.removeEventListener("storage", handleBusUpdate);
+    };
+  }, [activeQueueIndex]);
 
   const handleDecision = async (decision: "PASS" | "REPAIR" | "REJECT") => {
     if (decision === "REJECT" && !showDefectPicker) {
@@ -151,32 +139,30 @@ export default function QcTerminalPage() {
             setLastActionMessage(
               `Unit Re-inspeksi ${productSerial} LOLOS QC! Barang diteruskan ke Gudang Jadi (Bonus QC TIDAK digandakan sesuai aturan no-duplicate).`
             );
+            updateQcQueueItem(productSerial, "PASS");
           } else {
-            const nextPool = data.totalQcBonusPool || poolBonus + 300;
+            const nextPool = incrementLiveQcPoolBonus(300);
             setPoolBonus(nextPool);
+            updateQcQueueItem(productSerial, "PASS");
             setLastActionMessage(
               `Unit ${productSerial} LOLOS QC! Pool Bonus bertambah +Rp 300 (Total: Rp ${nextPool.toLocaleString("id-ID")})`
             );
           }
         } else if (decision === "REPAIR") {
+          updateQcQueueItem(productSerial, "REPAIR");
           setLastActionMessage(
             `Unit ${productSerial} dialihkan ke status PERBAIKAN (dikembalikan ke lini jahit). Gaji penjahit TIDAK dipotong.`
           );
         } else {
+          updateQcQueueItem(productSerial, "REJECT");
           setLastActionMessage(
             `Unit ${productSerial} dinyatakan CACAT (${selectedDefect || "Resleting YKK Rusak"}). Barang dialihkan. Gaji penjahit TIDAK dipotong.`
           );
         }
 
-        // Update queue item status
-        const updatedQueue = [...qcQueue];
-        if (updatedQueue[activeQueueIndex]) {
-          updatedQueue[activeQueueIndex] = {
-            ...updatedQueue[activeQueueIndex],
-            status: decision,
-          };
-          setQcQueue(updatedQueue);
-        }
+        // Update local queue view
+        const updatedQueue = getQcQueue();
+        setQcQueue(updatedQueue);
 
         setShowDefectPicker(false);
         setSelectedDefect("");
@@ -200,6 +186,10 @@ export default function QcTerminalPage() {
 
   // UAT-03: Simulate 3,000 units PASS (Pool = Rp 900.000 -> Rp 300.000 each)
   const handleSimulateUat03 = async () => {
+    if (typeof window !== "undefined") {
+      localStorage.setItem("lukla_qc_pool", "900000");
+      window.dispatchEvent(new CustomEvent("lukla_bus_update", { detail: { eventKey: "QC_POOL_INCREMENTED" } }));
+    }
     setPoolBonus(900000);
     setLastActionMessage(
       "Simulasi UAT-03 Berhasil: 3.000 Unit Lolos QC tercapai! Total Pool = Rp 900.000 (Masing-masing 2 Mandor & 1 Kepala Ops menerima Rp 300.000)."

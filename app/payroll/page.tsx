@@ -19,6 +19,7 @@ import {
   X
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
+import { getApprovedMassOrders, getLiveQcPoolBonus, MassOrder } from "@/lib/dataBus";
 
 export default function PayrollPage() {
   const [activeTab, setActiveTab] = useState<"PAYROLL" | "INVOICE">("PAYROLL");
@@ -104,8 +105,11 @@ export default function PayrollPage() {
   const [invoiceDate, setInvoiceDate] = useState<string>("2026-10-14");
   const [dueDate, setDueDate] = useState<string>("2026-10-28");
 
-  // Invoice mock profiles
-  const ordersCatalog: Record<string, any> = {
+  // Dynamic Approved Orders & Live QC Bonus
+  const [approvedOrdersList, setApprovedOrdersList] = useState<MassOrder[]>([]);
+
+  // Invoice mock profiles + dynamically approved mass orders
+  const baseCatalog: Record<string, any> = {
     "ORD-2026-004": {
       orderId: "ORD-2026-004",
       clientName: "Snøhund (Internal Brand)",
@@ -134,7 +138,25 @@ export default function PayrollPage() {
     }
   };
 
-  const currentOrder = ordersCatalog[selectedOrder] || ordersCatalog["ORD-2026-004"];
+  const dynamicCatalog: Record<string, any> = { ...baseCatalog };
+  approvedOrdersList.forEach((ord) => {
+    const key = ord.orderNumber || ord.id;
+    dynamicCatalog[key] = {
+      orderId: key,
+      clientName: ord.clientName,
+      clientEmail: "procurement@klien.id",
+      clientAddress: "Bandung, Jawa Barat",
+      articleName: ord.article,
+      scheme: ord.scheme,
+      quantity: ord.targetQty,
+      cuttingRate: 2500,
+      sewingRate: 18500,
+      materialsCharge: ord.scheme === "CMT" ? 0 : 1850000,
+      finishingRate: 1500
+    };
+  });
+
+  const currentOrder = dynamicCatalog[selectedOrder] || dynamicCatalog["ORD-2026-004"] || Object.values(dynamicCatalog)[0];
 
   const cuttingTotal = currentOrder.quantity * currentOrder.cuttingRate;
   const sewingTotal = currentOrder.quantity * currentOrder.sewingRate;
@@ -191,9 +213,53 @@ export default function PayrollPage() {
     }
   };
 
+  const syncBusData = () => {
+    const liveApproved = getApprovedMassOrders();
+    setApprovedOrdersList(liveApproved);
+
+    const liveBonus = getLiveQcPoolBonus();
+    // Default 2 Mandors + 1 Kepala Ops = 3-way split (FR-10.3)
+    const perSupervisorBonus = Math.round(liveBonus / (numMandors + 1));
+
+    setPayrollItems((prev) =>
+      prev.map((it) => {
+        if (it.worker_role === "PRODUCTION_HEAD_MANDOR") {
+          return {
+            ...it,
+            qc_bonus_received: perSupervisorBonus,
+            take_home_pay: it.piece_rate_subtotal + it.meal_allowance_cash + perSupervisorBonus,
+          };
+        }
+        return it;
+      })
+    );
+  };
+
   useEffect(() => {
     calculatePayroll();
-  }, []);
+    syncBusData();
+
+    window.addEventListener("lukla_bus_update", syncBusData);
+    window.addEventListener("storage", syncBusData);
+    return () => {
+      window.removeEventListener("lukla_bus_update", syncBusData);
+      window.removeEventListener("storage", syncBusData);
+    };
+  }, [numMandors]);
+
+  // Recalculate meal allowance dynamically when mealPct slider changes (FR-10.2)
+  useEffect(() => {
+    setPayrollItems((prev) =>
+      prev.map((it) => {
+        const meal = Math.round(it.piece_rate_subtotal * (mealPct / 100));
+        return {
+          ...it,
+          meal_allowance_cash: meal,
+          take_home_pay: it.piece_rate_subtotal + meal + (it.qc_bonus_received || 0),
+        };
+      })
+    );
+  }, [mealPct]);
 
   const overheadPerUnit = Math.round(monthlyOverhead / (estimatedMonthlyUnits || 1));
 
@@ -535,7 +601,10 @@ export default function PayrollPage() {
 
             {/* Perforated Paper Payslip (5 cols, Section 8.5 of DESIGN_SYSTEM.md) */}
             <div className="lg:col-span-5 flex justify-center w-full">
-              {selectedSlipWorker ? (
+              {(() => {
+                const activeSlipWorker = payrollItems.find(it => it.id === selectedSlipWorker?.id) || selectedSlipWorker;
+                if (!activeSlipWorker) return null;
+                return (
                 <div className="w-full max-w-[360px] bg-white border border-garis rounded-work shadow-hard p-4 sm:p-5 text-xs text-tinta font-mono relative">
                   {/* Top Perforation Line */}
                   <div className="border-b-2 border-dashed border-garis pb-3 mb-4 text-center flex flex-col items-center">
@@ -556,16 +625,16 @@ export default function PayrollPage() {
                     <div className="flex justify-between">
                       <span className="text-teks-sekunder">Nama:</span>
                       <span className="font-bold text-celup-indigo">
-                        {selectedSlipWorker.user_profiles?.full_name}
+                        {activeSlipWorker.user_profiles?.full_name}
                       </span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-teks-sekunder">Posisi:</span>
-                      <span className="font-semibold">{selectedSlipWorker.worker_role}</span>
+                      <span className="font-semibold">{activeSlipWorker.worker_role}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-teks-sekunder">Verified Output:</span>
-                      <span className="font-bold">{selectedSlipWorker.verified_output_pcs} pcs</span>
+                      <span className="font-bold">{activeSlipWorker.verified_output_pcs} pcs</span>
                     </div>
                   </div>
 
@@ -574,20 +643,20 @@ export default function PayrollPage() {
                     <div className="flex justify-between">
                       <span>Upah Borongan Komponen</span>
                       <span className="font-bold">
-                        Rp {Number(selectedSlipWorker.piece_rate_subtotal).toLocaleString("id-ID")}
+                        Rp {Number(activeSlipWorker.piece_rate_subtotal).toLocaleString("id-ID")}
                       </span>
                     </div>
                     <div className="flex justify-between text-status-perbaikan font-semibold">
                       <span>Uang Makan ({mealPct}% Tunai)</span>
                       <span>
-                        Rp {Number(selectedSlipWorker.meal_allowance_cash).toLocaleString("id-ID")}
+                        Rp {Number(activeSlipWorker.meal_allowance_cash).toLocaleString("id-ID")}
                       </span>
                     </div>
-                    {Number(selectedSlipWorker.qc_bonus_received) > 0 && (
+                    {Number(activeSlipWorker.qc_bonus_received) > 0 && (
                       <div className="flex justify-between text-status-lolos font-semibold">
                         <span>Bonus Pool QC (3-Arah)</span>
                         <span>
-                          Rp {Number(selectedSlipWorker.qc_bonus_received).toLocaleString("id-ID")}
+                          Rp {Number(activeSlipWorker.qc_bonus_received).toLocaleString("id-ID")}
                         </span>
                       </div>
                     )}
@@ -599,7 +668,7 @@ export default function PayrollPage() {
                       TOTAL THP DITERIMA
                     </span>
                     <span className="text-lg font-extrabold text-celup-indigo">
-                      Rp {Number(selectedSlipWorker.take_home_pay).toLocaleString("id-ID")}
+                      Rp {Number(activeSlipWorker.take_home_pay).toLocaleString("id-ID")}
                     </span>
                   </div>
 
@@ -617,11 +686,8 @@ export default function PayrollPage() {
                     </span>
                   </div>
                 </div>
-              ) : (
-                <div className="p-8 text-center text-xs text-teks-sekunder">
-                  Pilih karyawan pada tabel untuk melihat slip gaji kertas.
-                </div>
-              )}
+                );
+              })()}
             </div>
           </div>
         </>
@@ -647,11 +713,17 @@ export default function PayrollPage() {
               <label className="text-xs font-bold text-tinta">Pilih Pesanan Massal:</label>
               <select
                 value={selectedOrder}
-                onChange={(e) => setSelectedOrder(e.target.value)}
+                onChange={(e) => {
+                  setSelectedOrder(e.target.value);
+                  setInvoiceNumber(`INV-${e.target.value.replace("ORD-", "")}`);
+                }}
                 className="w-full text-xs border border-garis rounded p-2 text-celup-indigo font-bold bg-white"
               >
-                <option value="ORD-2026-004">ORD-2026-004 • Snøhund (Winter Parka V2 - 500 pcs)</option>
-                <option value="ORD-2026-003">ORD-2026-003 • PT Bintang Tekstil (Kemeja Flanel - 1.200 pcs)</option>
+                {Object.values(dynamicCatalog).map((ord: any) => (
+                  <option key={ord.orderId} value={ord.orderId}>
+                    {ord.orderId} • {ord.clientName} ({ord.articleName} - {ord.quantity.toLocaleString("id-ID")} pcs)
+                  </option>
+                ))}
               </select>
             </div>
 

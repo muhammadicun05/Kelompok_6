@@ -11,12 +11,22 @@ import {
   Filter,
   RefreshCw,
   Download,
-  Scissors
+  Scissors,
+  Plus,
+  X
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { ThreadEdge, ClientTag, getClientMonogram } from "@/components/Design/ThreadEdge";
 import { AntiContaminationModal } from "@/components/Warehouse/AntiContaminationModal";
 import { UniversalFilterBar, FilterState } from "@/components/Design/UniversalFilterBar";
+import { 
+  getApprovedMassOrders, 
+  getCuttingBatches, 
+  addCuttingBatch, 
+  getCustomInventory, 
+  addCustomInventory, 
+  InventoryItemCustom 
+} from "@/lib/dataBus";
 
 export default function WarehousePage() {
   const [items, setItems] = useState<any[]>([]);
@@ -33,30 +43,22 @@ export default function WarehousePage() {
   });
   const [loading, setLoading] = useState(true);
   const [warehouseTab, setWarehouseTab] = useState<"INVENTORY" | "CUTTING">("INVENTORY");
-  const [cuttingBatches, setCuttingBatches] = useState([
-    {
-      id: "CUT-2026-001",
-      orderNumber: "ORD-2026-004",
-      clientName: "Snøhund Alpine Wear",
-      material: "Cordura 1000D #C-01 (Black Olive)",
-      componentSet: "Panel Depan, Belakang, Tali Bahu, Saku Organizer, Busa Padding",
-      qtyCutSets: 150,
-      cutDate: "15 Okt 2026, 09:30",
-      status: "Siap Dijahit Operator",
-    },
-    {
-      id: "CUT-2026-002",
-      orderNumber: "ORD-2026-002",
-      clientName: "PT Bandung Apparel",
-      material: "Ripstop Diamond Nylon 420D (Navy)",
-      componentSet: "Roll-Top Main Body, Laptop Sleeve, Saku Samping, Webbing Straps",
-      qtyCutSets: 100,
-      cutDate: "15 Okt 2026, 11:15",
-      status: "Siap Dijahit Operator",
-    },
-  ]);
+  const [cuttingBatches, setCuttingBatches] = useState<any[]>([]);
   const [newCutOrder, setNewCutOrder] = useState<string>("ORD-2026-004");
   const [newCutQty, setNewCutQty] = useState<number>(50);
+
+  // Inbound Material Modal State
+  const [showInboundModal, setShowInboundModal] = useState<boolean>(false);
+  const [inboundForm, setInboundForm] = useState({
+    itemCode: "RAW-SNO-CORDURA-01",
+    name: "Cordura 1000D Tactical Waterproof (Olive Black)",
+    materialType: "Kain Utama",
+    clientCode: "SNOHUND",
+    orderNumber: "ORD-2026-004",
+    rollNumber: "ROLL-08",
+    currentStock: 1500,
+    unit: "Yard",
+  });
 
   // Anti-Contamination Modal State (FR-6.2 & UAT-01)
   const [blockModal, setBlockModal] = useState<{
@@ -83,33 +85,48 @@ export default function WarehousePage() {
   const loadData = async () => {
     try {
       setLoading(true);
-      // Fetch inventory items with client & order relations
+
+      // 1. Fetch inventory items from Supabase + combine with custom Inbound inventory
       const { data: invData } = await supabase
         .from("inventory_items")
         .select("*, clients(*), orders(*)")
         .order("created_at", { ascending: false });
 
-      if (invData) {
-        setItems(invData);
-        if (invData.length > 0) {
-          setSelectedItem((prev: any) => prev || invData[0]);
-        }
+      const customInv = getCustomInventory();
+      const combinedItems = [...customInv, ...(invData || [])];
+      setItems(combinedItems);
+      if (combinedItems.length > 0 && !selectedItem) {
+        setSelectedItem(combinedItems[0]);
       }
 
-      // Fetch active orders
+      // 2. Fetch active orders from Supabase + combine with approved mass orders from dataBus
       const { data: ordData } = await supabase
         .from("orders")
         .select("*, clients(*)")
         .order("created_at", { ascending: false });
 
-      if (ordData) {
-        setOrders(ordData);
-        if (ordData.length > 0) {
-          setSelectedOrderId((prev: any) => prev || ordData[0].id);
-        }
+      const busOrders = getApprovedMassOrders().map((bo) => ({
+        id: bo.id || bo.orderNumber,
+        order_number: bo.orderNumber,
+        article_name: bo.article,
+        scheme: bo.scheme,
+        target_qty: bo.targetQty,
+        clients: {
+          client_code: bo.clientCode,
+          name: bo.clientName,
+        },
+      }));
+
+      const combinedOrders = [...busOrders, ...(ordData || [])];
+      setOrders(combinedOrders);
+      if (combinedOrders.length > 0 && !selectedOrderId) {
+        setSelectedOrderId(combinedOrders[0].id);
       }
 
-      // Fetch audit logs
+      // 3. Sync cutting batches from data bus
+      setCuttingBatches(getCuttingBatches());
+
+      // 4. Fetch audit logs
       const { data: txData } = await supabase
         .from("inventory_transactions")
         .select("*, inventory_items(*)")
@@ -126,7 +143,51 @@ export default function WarehousePage() {
 
   useEffect(() => {
     loadData();
+
+    const handleBusUpdate = () => loadData();
+    window.addEventListener("lukla_bus_update", handleBusUpdate);
+    window.addEventListener("storage", handleBusUpdate);
+
+    return () => {
+      window.removeEventListener("lukla_bus_update", handleBusUpdate);
+      window.removeEventListener("storage", handleBusUpdate);
+    };
   }, []);
+
+  const handleCreateInbound = (e: React.FormEvent) => {
+    e.preventDefault();
+    const clientName =
+      inboundForm.clientCode === "SNOHUND"
+        ? "Snøhund Alpine Wear"
+        : inboundForm.clientCode === "KLIEN_A"
+        ? "PT Bandung Apparel"
+        : "CV Priangan Outdoor";
+
+    const newItem: any = {
+      id: `inv-${Date.now()}`,
+      item_code: inboundForm.itemCode,
+      name: inboundForm.name,
+      material_type: inboundForm.materialType,
+      client_id: `cli-${inboundForm.clientCode.toLowerCase()}`,
+      order_id: `ord-${inboundForm.orderNumber}`,
+      roll_number: inboundForm.rollNumber,
+      current_stock: Number(inboundForm.currentStock),
+      unit: inboundForm.unit,
+      clients: { client_code: inboundForm.clientCode, name: clientName },
+      orders: {
+        order_number: inboundForm.orderNumber,
+        article_name: "Snøhund Alpine Tactical Backpack 35L",
+      },
+      created_at: new Date().toISOString(),
+    };
+
+    addCustomInventory(newItem);
+    setShowInboundModal(false);
+    loadData();
+    alert(
+      `Bahan Masuk ${newItem.item_code} (${newItem.name} - ${newItem.current_stock} ${newItem.unit}) BERHASIL dicatat & dilabeli QR Tag ID Klien [${inboundForm.clientCode}]!`
+    );
+  };
 
   const handleIssueMaterial = async () => {
     if (!selectedItem || !selectedOrderId) return;
@@ -222,7 +283,15 @@ export default function WarehousePage() {
           </p>
         </div>
 
-        <div className="flex gap-2 w-full md:w-auto">
+        <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
+          <button
+            onClick={() => setShowInboundModal(true)}
+            className="px-3.5 py-2 rounded-field bg-kapur text-celup-indigo hover:bg-kapur/90 text-xs font-bold flex items-center justify-center gap-1.5 shadow-hard border border-celup-indigo transition-all active:translate-y-0.5"
+          >
+            <Plus className="w-4 h-4 text-celup-indigo" />
+            <span>+ Inbound Bahan Masuk (QR Tag)</span>
+          </button>
+
           {warehouseTab === "CUTTING" && (
             <button
               onClick={exportCuttingCsv}
@@ -242,6 +311,158 @@ export default function WarehousePage() {
           </button>
         </div>
       </div>
+
+      {/* Inbound Material Modal (FR-6.1 Mandatory Tagging) */}
+      {showInboundModal && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-3 sm:p-4 backdrop-blur-xs">
+          <div className="bg-lembar border-2 border-celup-indigo rounded-work shadow-2xl max-w-xl w-full p-5 space-y-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-garis pb-3">
+              <div className="flex items-center gap-2">
+                <QrCode className="w-5 h-5 text-celup-indigo" />
+                <div>
+                  <h2 className="text-base font-bold text-celup-indigo">
+                    Pencatatan Bahan Baku Masuk (Inbound QR Tagging)
+                  </h2>
+                  <p className="text-xs text-teks-sekunder">
+                    FR-6.1: Setiap roll kain wajib dilabeli ID Klien & ID Pesanan sebelum masuk rak penyimpanan
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowInboundModal(false)}
+                className="w-8 h-8 rounded-full bg-white hover:bg-kabut border border-garis flex items-center justify-center text-teks-sekunder"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateInbound} className="space-y-3 text-xs">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="font-semibold text-teks-sekunder block mb-1">
+                    Tag QR / Kode Bahan:
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={inboundForm.itemCode}
+                    onChange={(e) => setInboundForm({ ...inboundForm, itemCode: e.target.value })}
+                    className="w-full bg-white border border-garis rounded p-2 font-mono font-bold text-celup-indigo"
+                  />
+                </div>
+
+                <div>
+                  <label className="font-semibold text-teks-sekunder block mb-1">
+                    Nomor Roll:
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={inboundForm.rollNumber}
+                    onChange={(e) => setInboundForm({ ...inboundForm, rollNumber: e.target.value })}
+                    className="w-full bg-white border border-garis rounded p-2 font-mono font-bold text-tinta"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="font-semibold text-teks-sekunder block mb-1">
+                  Nama Kain / Material:
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={inboundForm.name}
+                  onChange={(e) => setInboundForm({ ...inboundForm, name: e.target.value })}
+                  className="w-full bg-white border border-garis rounded p-2 font-bold text-tinta"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="font-semibold text-teks-sekunder block mb-1">
+                    Pemilik Stok (ID Klien):
+                  </label>
+                  <select
+                    value={inboundForm.clientCode}
+                    onChange={(e) => setInboundForm({ ...inboundForm, clientCode: e.target.value })}
+                    className="w-full bg-white border border-garis rounded p-2 font-bold text-celup-indigo"
+                  >
+                    <option value="SNOHUND">Snøhund Alpine Wear [SH]</option>
+                    <option value="KLIEN_A">PT Bandung Apparel [KA]</option>
+                    <option value="KLIEN_B">CV Priangan Outdoor [KB]</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="font-semibold text-teks-sekunder block mb-1">
+                    Pesanan Target (ID Pesanan):
+                  </label>
+                  <select
+                    value={inboundForm.orderNumber}
+                    onChange={(e) => setInboundForm({ ...inboundForm, orderNumber: e.target.value })}
+                    className="w-full bg-white border border-garis rounded p-2 font-bold text-celup-indigo"
+                  >
+                    {orders.map((o) => (
+                      <option key={o.id} value={o.order_number}>
+                        {o.order_number} — {o.article_name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="font-semibold text-teks-sekunder block mb-1">
+                    Jumlah Roll (Panjang/Volume):
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    required
+                    value={inboundForm.currentStock}
+                    onChange={(e) => setInboundForm({ ...inboundForm, currentStock: Number(e.target.value) })}
+                    className="w-full bg-white border border-garis rounded p-2 font-mono font-bold text-celup-indigo"
+                  />
+                </div>
+
+                <div>
+                  <label className="font-semibold text-teks-sekunder block mb-1">
+                    Satuan Ukur:
+                  </label>
+                  <select
+                    value={inboundForm.unit}
+                    onChange={(e) => setInboundForm({ ...inboundForm, unit: e.target.value })}
+                    className="w-full bg-white border border-garis rounded p-2 font-bold text-tinta"
+                  >
+                    <option value="Yard">Yard</option>
+                    <option value="Meter">Meter</option>
+                    <option value="Pcs">Pcs / Set</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="pt-2 flex justify-end gap-2 border-t border-garis">
+                <button
+                  type="button"
+                  onClick={() => setShowInboundModal(false)}
+                  className="px-3 py-2 bg-white border border-garis rounded text-teks-sekunder hover:text-celup-indigo font-bold"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-celup-indigo text-white font-bold rounded shadow-hard hover:bg-celup-indigo/90 flex items-center gap-1.5"
+                >
+                  <CheckCircle2 className="w-4 h-4 text-status-lolos" />
+                  <span>Simpan & Labeli QR Tag</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Universal Filter & Date Range Bar */}
       <UniversalFilterBar
@@ -542,7 +763,7 @@ export default function WarehousePage() {
                   Bahan Baku yang Digunakan:
                 </label>
                 <div className="p-2.5 bg-white border border-garis rounded-field text-xs font-medium text-tinta">
-                  Taslan Milky / Parasut (Tervalidasi FR-6.2)
+                  Cordura 1000D / Ripstop Diamond Nylon (Tervalidasi Anti-Kontaminasi FR-6.2)
                 </div>
               </div>
 
@@ -560,22 +781,27 @@ export default function WarehousePage() {
                   />
                   <button
                     onClick={() => {
+                      const matchedOrd = orders.find((o) => o.order_number === newCutOrder);
                       const newBatch = {
                         id: `CUT-2026-00${cuttingBatches.length + 1}`,
                         orderNumber: newCutOrder,
-                        clientName: "Snøhund / Klien B2B",
-                        material: "Kain Tervalidasi",
-                        componentSet: "Pola Lengkap (Badan, Lengan, Kantong, Rib)",
+                        clientName: matchedOrd?.clients?.name || "Snøhund Alpine Wear",
+                        clientCode: matchedOrd?.clients?.client_code || "SNOHUND",
+                        material: "Cordura 1000D / Ripstop Tervalidasi",
+                        componentSet: "Pola Ransel (Panel Depan, Belakang, Tali Bahu, Saku, Busa)",
                         qtyCutSets: newCutQty,
                         cutDate: "Baru saja",
-                        status: "Siap Dijahit Operator",
+                        status: "Siap Dirakit Assembly",
                       };
-                      setCuttingBatches([newBatch, ...cuttingBatches]);
-                      alert(`Hasil potong ${newCutQty} set pola untuk ${newCutOrder} berhasil dicatat & diteruskan ke Penjahit-Operator!`);
+                      addCuttingBatch(newBatch);
+                      setCuttingBatches(getCuttingBatches());
+                      alert(
+                        `Hasil potong ${newCutQty} set pola ransel untuk ${newCutOrder} BERHASIL dicatat & otomatis masuk secara real-time ke Antrean FIFO Assembly Penjahit!`
+                      );
                     }}
                     className="flex-1 px-3 py-2 bg-celup-indigo text-white text-xs font-bold rounded-field shadow-hard hover:bg-celup-indigo/90"
                   >
-                    Kirim ke Penjahit-Operator →
+                    Kirim ke Antrean FIFO Penjahit →
                   </button>
                 </div>
               </div>

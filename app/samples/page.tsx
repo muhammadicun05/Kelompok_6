@@ -13,6 +13,8 @@ import {
 } from "lucide-react";
 import { ThreadEdge, ClientTag } from "@/components/Design/ThreadEdge";
 
+import { savePendingMassOrder, MassOrder } from "@/lib/dataBus";
+
 interface VersionItem {
   version: number;
   status: "APPROVED" | "REJECTED" | "IN_REVIEW";
@@ -156,31 +158,30 @@ export default function SamplesPage() {
   const [selectedScheme, setSelectedScheme] = useState("FULL_PACKAGE");
 
   const handleConvertToMassOrder = () => {
-    const orderData = {
-      orderNumber: `ORD-2026-004`,
-      scheme: selectedScheme,
+    const dynamicNum = activeSample.id === "SNO-HD-01" ? "ORD-2026-004" : `ORD-2026-${Math.floor(100 + Math.random() * 900)}`;
+    const orderData: MassOrder = {
+      id: `ord-${Date.now()}`,
+      orderNumber: dynamicNum,
+      scheme: selectedScheme as any,
       clientName: activeSample.clientName,
       clientCode: activeSample.clientCode,
       article: activeSample.articleName,
       targetQty: 500,
+      completedQty: 0,
       inheritedVersion: "v2 (Approved)",
       inheritedSmv: "18m 30s",
       inheritedFabric: "1.45 m Cordura 1000D / pcs",
       status: "PENDING_OWNER_APPROVAL",
-      createdAt: new Date().toISOString(),
+      createdAt: new Date().toLocaleString("id-ID", { dateStyle: "medium", timeStyle: "short" }),
     };
     setConvertedOrder(orderData);
     setOwnerApprovalStatus("PENDING");
     setIsClientAccountActive(false);
 
-    // Save draft order to localStorage so Owner Dashboard can pick it up immediately
-    try {
-      const existing = JSON.parse(localStorage.getItem("lukla_pending_orders") || "[]");
-      const filtered = existing.filter((o: any) => o.orderNumber !== orderData.orderNumber);
-      localStorage.setItem("lukla_pending_orders", JSON.stringify([orderData, ...filtered]));
-    } catch {}
+    // Save draft order to data bus
+    savePendingMassOrder(orderData);
 
-    alert(`Draft Pesanan Massal ${orderData.orderNumber} (${orderData.article}) berhasil diterbitkan oleh Sampler! Status saat ini: Menunggu Persetujuan Owner di Dashboard Owner.`);
+    alert(`Draft Pesanan Massal ${orderData.orderNumber} (${orderData.article}) berhasil diterbitkan oleh Sampler! Terkoneksi secara real-time ke Antrean Approval Owner di Dashboard.`);
   };
 
   return (

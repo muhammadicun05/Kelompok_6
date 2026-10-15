@@ -20,6 +20,11 @@ import { supabase } from "@/lib/supabase";
 import { StitchBorder } from "@/components/Design/StitchBorder";
 import { ClientTag } from "@/components/Design/ThreadEdge";
 import { useRole } from "@/components/Layout/RoleContext";
+import { 
+  getApprovedMassOrders, 
+  getCuttingBatches, 
+  pushToQcQueue 
+} from "@/lib/dataBus";
 
 const TIME_SLOTS = [
   "08:00-08:30",
@@ -123,9 +128,33 @@ export default function ProductionTerminalPage() {
         .select("*, clients(*)")
         .order("created_at", { ascending: false });
 
-      if (ords && ords.length > 0) {
-        setOrders(ords);
-        if (!selectedOrderId) setSelectedOrderId(ords[0].id);
+      // Combine with approved mass orders from data bus
+      const busOrders = getApprovedMassOrders().map((bo) => ({
+        id: bo.id || bo.orderNumber,
+        order_number: bo.orderNumber,
+        article_name: bo.article,
+        scheme: bo.scheme,
+        clients: { client_code: bo.clientCode, name: bo.clientName },
+      }));
+
+      const combinedOrders = [...busOrders, ...(ords || [])];
+      if (combinedOrders.length > 0) {
+        setOrders(combinedOrders);
+        if (!selectedOrderId) setSelectedOrderId(combinedOrders[0].id);
+      }
+
+      // Sync FIFO queue from cutting batches in data bus
+      const cutBatches = getCuttingBatches();
+      if (cutBatches.length > 0) {
+        const queueMapped = cutBatches.map((cb) => ({
+          batchId: cb.id,
+          orderNumber: cb.orderNumber,
+          articleName: cb.clientName === "Snøhund Alpine Wear" ? "Snøhund Alpine Tactical Backpack 35L" : "Urban Commuter Roll-Top Backpack 25L",
+          components: cb.componentSet,
+          qtyAvailable: cb.qtyCutSets,
+          verifiedAt: cb.cutDate,
+        }));
+        setFifoQueue(queueMapped);
       }
     } catch (err) {
       console.error("Error loading logs:", err);
@@ -134,6 +163,15 @@ export default function ProductionTerminalPage() {
 
   useEffect(() => {
     loadLogs();
+
+    const handleBusUpdate = () => loadLogs();
+    window.addEventListener("lukla_bus_update", handleBusUpdate);
+    window.addEventListener("storage", handleBusUpdate);
+
+    return () => {
+      window.removeEventListener("lukla_bus_update", handleBusUpdate);
+      window.removeEventListener("storage", handleBusUpdate);
+    };
   }, []);
 
   const handleSelectMachine = (mNum: number) => {
@@ -202,6 +240,22 @@ export default function ProductionTerminalPage() {
 
       const data = await res.json();
       if (data.success) {
+        // If this was an Assembly output, automatically push to QC FIFO queue
+        const isAssembly = activeComponent.includes("Assembly") || tailorSubMode === "ASSEMBLY";
+        if (isAssembly) {
+          const currentOrd = orders.find((o) => o.id === (selectedOrderId || orders[0]?.id));
+          const serial = `BAG-SNO-${Math.floor(1000 + Math.random() * 9000)}`;
+          pushToQcQueue({
+            serial,
+            orderNumber: currentOrd?.order_number || "ORD-2026-004",
+            articleName: currentOrd?.article_name || "Snøhund Alpine Tactical Backpack 35L",
+            assembledBy: `Mesin #${selectedMachine} (${allocations[selectedMachine]?.tailor || "Penjahit Assembly"})`,
+            arrivedAt: `${new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })} WIB`,
+            status: "WAITING",
+            isReinspection: false,
+          });
+        }
+
         setNotification(
           activeRole === "MANDOR"
             ? `Output ${qty} pcs di Mesin #${selectedMachine} berhasil dicatat & Langsung VERIFIED!`
@@ -253,6 +307,22 @@ export default function ProductionTerminalPage() {
       const data = await res.json();
       if (data.success) {
         setNotification("Status berhasil diverifikasi oleh Mandor! Batch perakitan produk utuh kini diteruskan ke antrean Terminal QC.");
+
+        // Push to QC FIFO Queue if this verified log is an Assembly task
+        const verifiedLog = todayLogs.find((l) => l.id === logId);
+        if (verifiedLog && verifiedLog.component_name?.includes("Assembly")) {
+          const serial = `BAG-SNO-${Math.floor(1000 + Math.random() * 9000)}`;
+          pushToQcQueue({
+            serial,
+            orderNumber: verifiedLog.orders?.order_number || "ORD-2026-004",
+            articleName: verifiedLog.orders?.article_name || "Snøhund Alpine Tactical Backpack 35L",
+            assembledBy: `Mesin #${verifiedLog.machine_number}`,
+            arrivedAt: `${new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })} WIB`,
+            status: "WAITING",
+            isReinspection: false,
+          });
+        }
+
         loadLogs();
       }
     } catch (err: any) {
