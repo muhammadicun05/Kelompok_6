@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lukla Operations Engine - Operational Flow (BPMN 2.0)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      font-family: 'Archivo', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background-color: #0F172A;
+      color: #F8FAFC;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+    }
+    header {
+      background-color: #1E293B;
+      border-bottom: 1px solid #334155;
+      padding: 12px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+      z-index: 20;
+    }
+    .header-left h1 {
+      font-size: 16px;
+      font-weight: 800;
+      color: #FFFFFF;
+      letter-spacing: -0.3px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .header-left p {
+      font-size: 12px;
+      color: #94A3B8;
+      margin-top: 2px;
+    }
+    .badge {
+      background-color: #26325B;
+      color: #E8E36B;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 4px;
+      border: 1px solid rgba(232, 227, 107, 0.3);
+    }
+    .controls {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .btn {
+      background-color: #334155;
+      color: #FFFFFF;
+      border: 1px solid #475569;
+      padding: 6px 14px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.15s ease;
+    }
+    .btn:hover {
+      background-color: #475569;
+      border-color: #64748B;
+    }
+    .btn-primary {
+      background-color: #2563EB;
+      border-color: #3B82F6;
+    }
+    .btn-primary:hover {
+      background-color: #1D4ED8;
+    }
+    #viewport-container {
+      flex: 1;
+      overflow: auto;
+      background: #E2E8F0;
+      display: flex;
+      align-items: flex-start;
+      justify-content: flex-start;
+      padding: 24px;
+      cursor: grab;
+    }
+    #viewport-container:active {
+      cursor: grabbing;
+    }
+    .canvas-wrapper {
+      background: #FFFFFF;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.1);
+      border-radius: 8px;
+      overflow: hidden;
+      transform-origin: top left;
+      transition: transform 0.1s ease-out;
+    }
+    svg {
+      display: block;
+      width: 2600px;
+      height: 1520px;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="header-left">
+      <h1>
+        Lukla Operations Engine • BPMN 2.0 Operational Flow
+        <span class="badge">Master Final v2.0</span>
+      </h1>
+      <p>Diagram Alur Proses Bisnis Lengkap 6 Fase &amp; 8 Swimlanes (Diselaraskan dengan 10 Aturan Resmi &amp; Stasiun Assembly)</p>
+    </div>
+
+    <div class="controls">
+      <button class="btn" onclick="zoomIn()">➕ Zoom In</button>
+      <button class="btn" onclick="zoomOut()">➖ Zoom Out</button>
+      <button class="btn" onclick="resetZoom()">↺ Reset (Fit)</button>
+      <button class="btn btn-primary" onclick="window.print()">🖨️ Cetak / Simpan PDF</button>
+    </div>
+  </header>
+
+  <div id="viewport-container">
+    <div id="canvas" class="canvas-wrapper">
+      <!-- Embed SVG -->
+      <object data="Lukla_Operations_Engine_BPMN_2.0_Master.svg" type="image/svg+xml" width="2600" height="1520">
+        <p>Browser Anda tidak mendukung preview SVG langsung. Silakan buka file <a href="Lukla_Operations_Engine_BPMN_2.0_Master.svg">Lukla_Operations_Engine_BPMN_2.0_Master.svg</a> secara langsung.</p>
+      </object>
+    </div>
+  </div>
+
+  <script>
+    let scale = 0.65;
+    const canvas = document.getElementById('canvas');
+
+    function updateTransform() {
+      canvas.style.transform = `scale(${scale})`;
+    }
+
+    function zoomIn() {
+      scale = Math.min(scale + 0.15, 2.0);
+      updateTransform();
+    }
+
+    function zoomOut() {
+      scale = Math.max(scale - 0.15, 0.3);
+      updateTransform();
+    }
+
+    function resetZoom() {
+      // Auto-fit to screen width
+      const containerWidth = document.getElementById('viewport-container').clientWidth - 60;
+      scale = Math.max(containerWidth / 2600, 0.4);
+      updateTransform();
+    }
+
+    // Initialize auto fit
+    window.addEventListener('load', resetZoom);
+    window.addEventListener('resize', () => {
+      if (scale < 0.8) resetZoom();
+    });
+  </script>
+</body>
+</html>

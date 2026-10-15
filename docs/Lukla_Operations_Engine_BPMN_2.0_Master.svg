@@ -1,0 +1,502 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2600 1520" width="2600" height="1520" style="background:#ffffff; font-family:'Archivo', Arial, sans-serif;">
+  <defs>
+    <!-- Arrowhead markers -->
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="#151A24"/>
+    </marker>
+    <marker id="arrow-blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="#26325B"/>
+    </marker>
+    <marker id="arrow-red" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="#B3261E"/>
+    </marker>
+    <marker id="arrow-dashed" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="#4B5563"/>
+    </marker>
+
+    <!-- Filters for subtle shadows -->
+    <filter id="shadow" x="-5%" y="-5%" width="110%" height="115%" filterUnits="userSpaceOnUse">
+      <feDropShadow dx="1" dy="2" stdDeviation="1.5" flood-color="#000000" flood-opacity="0.08"/>
+    </filter>
+
+    <style>
+      .phase-title { font-size: 13px; font-weight: 700; fill: #151A24; }
+      .lane-title { font-size: 11px; font-weight: 700; fill: #151A24; }
+      .lane-sub { font-size: 9px; font-weight: 500; fill: #6B7280; }
+      .task-text { font-size: 9.5px; font-weight: 600; fill: #151A24; text-anchor: middle; }
+      .task-text-sub { font-size: 8px; font-weight: 500; fill: #4B5563; text-anchor: middle; }
+      .gateway-label { font-size: 8.5px; font-weight: 700; fill: #374151; text-anchor: middle; }
+      .edge-label { font-size: 8px; font-weight: 600; fill: #1F2937; }
+      .legend-text { font-size: 9px; font-weight: 500; fill: #374151; }
+    </style>
+  </defs>
+
+  <!-- ==================== 1. MAIN TITLE & SUBTITLE ==================== -->
+  <text x="45" y="42" font-size="24" font-weight="800" fill="#151A24" letter-spacing="-0.5">LUKLA OPERATIONS ENGINE - OPERATIONAL FLOW (BPMN 2.0)</text>
+  <text x="45" y="66" font-size="12" font-weight="500" fill="#6B7280">Berdasarkan Master BRD v2.0, PRD v2.0 &amp; 10 Aturan Bisnis Terkunci Kelompok 6 | Business Process Model and Notation 2.0</text>
+
+  <!-- ==================== 2. PHASE HEADER BAR (TOP) ==================== -->
+  <line x1="45" y1="85" x2="2560" y2="85" stroke="#CBD5E1" stroke-width="1"/>
+  <line x1="45" y1="125" x2="2560" y2="125" stroke="#CBD5E1" stroke-width="1"/>
+
+  <!-- Phase 1 -->
+  <circle cx="65" cy="105" r="10" fill="#26325B"/>
+  <text x="65" y="109" font-size="10" font-weight="700" fill="#ffffff" text-anchor="middle">1</text>
+  <text x="85" y="109" class="phase-title">Fase Sampel (Sample Phase)</text>
+
+  <!-- Phase 2 -->
+  <circle cx="510" cy="105" r="10" fill="#26325B"/>
+  <text x="510" y="109" font-size="10" font-weight="700" fill="#ffffff" text-anchor="middle">2</text>
+  <text x="530" y="109" class="phase-title">Persetujuan &amp; Pesanan Massal</text>
+
+  <!-- Phase 3 -->
+  <circle cx="950" cy="105" r="10" fill="#26325B"/>
+  <text x="950" y="109" font-size="10" font-weight="700" fill="#ffffff" text-anchor="middle">3</text>
+  <text x="970" y="109" class="phase-title">Gudang &amp; Meja Potong</text>
+
+  <!-- Phase 4 -->
+  <circle cx="1400" cy="105" r="10" fill="#26325B"/>
+  <text x="1400" y="109" font-size="10" font-weight="700" fill="#ffffff" text-anchor="middle">4</text>
+  <text x="1420" y="109" class="phase-title">Lini Produksi &amp; Stasiun Assembly</text>
+
+  <!-- Phase 5 -->
+  <circle cx="1870" cy="105" r="10" fill="#26325B"/>
+  <text x="1870" y="109" font-size="10" font-weight="700" fill="#ffffff" text-anchor="middle">5</text>
+  <text x="1890" y="109" class="phase-title">QC &amp; Barang Jadi</text>
+
+  <!-- Phase 6 -->
+  <circle cx="2210" cy="105" r="10" fill="#26325B"/>
+  <text x="2210" y="109" font-size="10" font-weight="700" fill="#ffffff" text-anchor="middle">6</text>
+  <text x="2230" y="109" class="phase-title">Penggajian &amp; Rekap</text>
+
+  <!-- Vertical Phase Boundary Dividers -->
+  <line x1="490" y1="85" x2="490" y2="1420" stroke="#E2E8F0" stroke-width="1.5" stroke-dasharray="6,6"/>
+  <line x1="930" y1="85" x2="930" y2="1420" stroke="#E2E8F0" stroke-width="1.5" stroke-dasharray="6,6"/>
+  <line x1="1380" y1="85" x2="1380" y2="1420" stroke="#E2E8F0" stroke-width="1.5" stroke-dasharray="6,6"/>
+  <line x1="1850" y1="85" x2="1850" y2="1420" stroke="#E2E8F0" stroke-width="1.5" stroke-dasharray="6,6"/>
+  <line x1="2190" y1="85" x2="2190" y2="1420" stroke="#E2E8F0" stroke-width="1.5" stroke-dasharray="6,6"/>
+
+  <!-- ==================== 3. MAIN POOL & SWIMLANES ==================== -->
+  <!-- Outer Pool Border -->
+  <rect x="45" y="130" width="2515" height="1290" fill="none" stroke="#64748B" stroke-width="1.5"/>
+
+  <!-- Left Pool Banner: LUKLA MANUFACTURING & SNØHUND OPERATIONS -->
+  <rect x="45" y="130" width="38" height="1290" fill="#26325B"/>
+  <text x="-775" y="69" transform="rotate(-90)" font-size="12" font-weight="800" fill="#ffffff" letter-spacing="2.5">LUKLA MANUFACTURING &amp; SNØHUND OPERATIONS</text>
+
+  <!-- Swimlane Horizontal Dividers -->
+  <!-- Lane 1: Klien Maklon B2B (Y: 130 -> 265, h=135) -->
+  <rect x="83" y="130" width="130" height="135" fill="#F8FAFC" stroke="#CBD5E1" stroke-width="1"/>
+  <text x="148" y="190" class="lane-title" text-anchor="middle">Klien Maklon</text>
+  <text x="148" y="205" class="lane-sub" text-anchor="middle">(B2B Portal)</text>
+  <line x1="83" y1="265" x2="2560" y2="265" stroke="#CBD5E1" stroke-width="1"/>
+
+  <!-- Lane 2: Owner / Eksekutif (Y: 265 -> 395, h=130) -->
+  <rect x="83" y="265" width="130" height="130" fill="#F8FAFC" stroke="#CBD5E1" stroke-width="1"/>
+  <text x="148" y="325" class="lane-title" text-anchor="middle">Owner /</text>
+  <text x="148" y="340" class="lane-title" text-anchor="middle">Eksekutif</text>
+  <line x1="83" y1="395" x2="2560" y2="395" stroke="#CBD5E1" stroke-width="1"/>
+
+  <!-- Lane 3: Tim Sampler (Y: 395 -> 530, h=135) -->
+  <rect x="83" y="395" width="130" height="135" fill="#F8FAFC" stroke="#CBD5E1" stroke-width="1"/>
+  <text x="148" y="455" class="lane-title" text-anchor="middle">Tim Sampler</text>
+  <text x="148" y="470" class="lane-sub" text-anchor="middle">(Mbak Lina)</text>
+  <line x1="83" y1="530" x2="2560" y2="530" stroke="#CBD5E1" stroke-width="1"/>
+
+  <!-- Lane 4: Gudang & Meja Potong (Y: 530 -> 685, h=155) -->
+  <rect x="83" y="530" width="130" height="155" fill="#F8FAFC" stroke="#CBD5E1" stroke-width="1"/>
+  <text x="148" y="595" class="lane-title" text-anchor="middle">Gudang &amp; Potong</text>
+  <text x="148" y="610" class="lane-sub" text-anchor="middle">(Kang Asep)</text>
+  <line x1="83" y1="685" x2="2560" y2="685" stroke="#CBD5E1" stroke-width="1"/>
+
+  <!-- Lane 5: Kepala Produksi & Mandor (Y: 685 -> 825, h=140) -->
+  <rect x="83" y="685" width="130" height="140" fill="#F8FAFC" stroke="#CBD5E1" stroke-width="1"/>
+  <text x="148" y="745" class="lane-title" text-anchor="middle">Kepala Produksi</text>
+  <text x="148" y="760" class="lane-title" text-anchor="middle">&amp; Mandor</text>
+  <line x1="83" y1="825" x2="2560" y2="825" stroke="#CBD5E1" stroke-width="1"/>
+
+  <!-- Lane 6: Penjahit Operator (Y: 825 -> 955, h=130) -->
+  <rect x="83" y="825" width="130" height="130" fill="#F8FAFC" stroke="#CBD5E1" stroke-width="1"/>
+  <text x="148" y="880" class="lane-title" text-anchor="middle">Penjahit Operator</text>
+  <text x="148" y="895" class="lane-sub" text-anchor="middle">(Komponen ±70 Mesin)</text>
+  <line x1="83" y1="955" x2="2560" y2="955" stroke="#CBD5E1" stroke-width="1"/>
+
+  <!-- Lane 7: Penjahit Assembly (Y: 955 -> 1085, h=130) -->
+  <rect x="83" y="955" width="130" height="130" fill="#F8FAFC" stroke="#CBD5E1" stroke-width="1"/>
+  <text x="148" y="1010" class="lane-title" text-anchor="middle">Penjahit Assembly</text>
+  <text x="148" y="1025" class="lane-sub" text-anchor="middle">(Perakitan Produk Utuh)</text>
+  <line x1="83" y1="1085" x2="2560" y2="1085" stroke="#CBD5E1" stroke-width="1"/>
+
+  <!-- Lane 8: QC Inspector (Y: 1085 -> 1220, h=135) -->
+  <rect x="83" y="1085" width="130" height="135" fill="#F8FAFC" stroke="#CBD5E1" stroke-width="1"/>
+  <text x="148" y="1145" class="lane-title" text-anchor="middle">QC Inspector</text>
+  <text x="148" y="1160" class="lane-sub" text-anchor="middle">(Teh Siti)</text>
+  <line x1="83" y1="1220" x2="2560" y2="1220" stroke="#CBD5E1" stroke-width="1"/>
+
+  <!-- Lane 9: Finance & Payroll (Y: 1220 -> 1420, h=200) -->
+  <rect x="83" y="1220" width="130" height="200" fill="#F8FAFC" stroke="#CBD5E1" stroke-width="1"/>
+  <text x="148" y="1310" class="lane-title" text-anchor="middle">Finance &amp;</text>
+  <text x="148" y="1325" class="lane-title" text-anchor="middle">Payroll</text>
+  <text x="148" y="1340" class="lane-sub" text-anchor="middle">(Ibu Dewi)</text>
+
+  <!-- ==================== 4. FASE 1: SAMPEL & STUDI WAKTU ==================== -->
+  <!-- Start Event: Mulai Proyek -->
+  <circle cx="245" cy="195" r="16" fill="#ffffff" stroke="#151A24" stroke-width="2"/>
+  <text x="245" y="225" font-size="8.5" font-weight="700" fill="#151A24" text-anchor="middle">Mulai Proyek</text>
+
+  <!-- Arrow Start -> Kirim Spesifikasi -->
+  <line x1="261" y1="195" x2="285" y2="195" stroke="#151A24" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Task: Kirim Spesifikasi Sampel & Titipan Bahan -->
+  <rect x="285" y="172" width="125" height="46" rx="6" fill="#E6ECEE" stroke="#26325B" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="347" y="191" class="task-text">Kirim Spesifikasi</text>
+  <text x="347" y="204" class="task-text">Sampel &amp; Titipan Bahan</text>
+
+  <!-- Arrow down to Sampler Lane -->
+  <path d="M 347 218 L 347 435" fill="none" stroke="#151A24" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Task: Catat Pemakaian Bahan Sampel (Sample BOM) -->
+  <rect x="290" y="435" width="115" height="46" rx="6" fill="#E6ECEE" stroke="#26325B" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="347" y="454" class="task-text">Catat Pemakaian</text>
+  <text x="347" y="467" class="task-text">Bahan Sampel (BOM)</text>
+
+  <!-- Arrow to Stopwatch -->
+  <line x1="405" y1="458" x2="425" y2="458" stroke="#151A24" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Task: Digital Stopwatch SMV per Komponen -->
+  <rect x="425" y="435" width="115" height="46" rx="6" fill="#E6ECEE" stroke="#26325B" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="482" y="454" class="task-text">Digital Stopwatch:</text>
+  <text x="482" y="467" class="task-text">Studi Waktu (SMV)</text>
+
+  <!-- Arrow to XOR Gateway (Sampel Disetujui?) -->
+  <line x1="540" y1="458" x2="560" y2="458" stroke="#151A24" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Gateway XOR: Versi Sampel Disetujui? -->
+  <polygon points="575,443 590,458 575,473 560,458" fill="#FFFBEB" stroke="#D97706" stroke-width="1.5"/>
+  <text x="575" y="462" font-size="11" font-weight="800" fill="#D97706" text-anchor="middle">✕</text>
+  <text x="575" y="490" class="gateway-label">Versi Sampel</text>
+  <text x="575" y="501" class="gateway-label">Disetujui?</text>
+
+  <!-- Loopback: Tidak (Revisi Sampel v1 -> v2) -->
+  <path d="M 575 443 L 575 415 L 347 415 L 347 435" fill="none" stroke="#151A24" stroke-width="1.2" stroke-dasharray="4,3" marker-end="url(#arrow)"/>
+  <text x="460" y="410" class="edge-label" fill="#B3261E">Tidak: Revisi Sampel (v1 → v2)</text>
+
+  <!-- Flow Ya (Approved v2) -> Fase 2 -->
+  <line x1="590" y1="458" x2="625" y2="458" stroke="#151A24" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="600" y="450" class="edge-label" fill="#1F7A4D">Ya</text>
+
+  <!-- ==================== 5. FASE 2: PERSETUJUAN & PESANAN MASSAL ==================== -->
+  <!-- Task Sampler: Terbitkan Order Produksi Massal (Approved v2) -->
+  <rect x="625" y="435" width="125" height="46" rx="6" fill="#E6ECEE" stroke="#26325B" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="687" y="454" class="task-text">Terbitkan Order Massal</text>
+  <text x="687" y="467" class="task-text">(Kunci BOM &amp; SMV v2)</text>
+
+  <!-- Arrow up to Klien Maklon: Konfirmasi Pesanan Massal -->
+  <path d="M 687 435 L 687 218" fill="none" stroke="#151A24" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Task Klien: Konfirmasi Pesanan Massal -->
+  <rect x="625" y="172" width="125" height="46" rx="6" fill="#E6ECEE" stroke="#26325B" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="687" y="191" class="task-text">Konfirmasi</text>
+  <text x="687" y="204" class="task-text">Pesanan Massal</text>
+
+  <!-- Arrow to Skema Maklon XOR Gateway -->
+  <line x1="750" y1="195" x2="775" y2="195" stroke="#151A24" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Gateway XOR: Skema Maklon? -->
+  <polygon points="790,180 805,195 790,210 775,195" fill="#FFFBEB" stroke="#D97706" stroke-width="1.5"/>
+  <text x="790" y="199" font-size="11" font-weight="800" fill="#D97706" text-anchor="middle">✕</text>
+  <text x="790" y="224" class="gateway-label">Skema Maklon?</text>
+
+  <!-- 3 Branches of Maklon Scheme -->
+  <!-- CMT -->
+  <path d="M 805 195 L 825 155 L 845 155" fill="none" stroke="#151A24" stroke-width="1.2" marker-end="url(#arrow)"/>
+  <rect x="845" y="142" width="105" height="26" rx="4" fill="#ffffff" stroke="#26325B" stroke-width="1"/>
+  <text x="897" y="159" font-size="8.5" font-weight="700" fill="#26325B" text-anchor="middle">CMT (Kain dari Klien)</text>
+
+  <!-- Semi-CMT -->
+  <path d="M 805 195 L 845 195" fill="none" stroke="#151A24" stroke-width="1.2" marker-end="url(#arrow)"/>
+  <rect x="845" y="182" width="105" height="26" rx="4" fill="#ffffff" stroke="#26325B" stroke-width="1"/>
+  <text x="897" y="199" font-size="8.5" font-weight="700" fill="#26325B" text-anchor="middle">Semi-CMT</text>
+
+  <!-- Full Package -->
+  <path d="M 805 195 L 825 235 L 845 235" fill="none" stroke="#151A24" stroke-width="1.2" marker-end="url(#arrow)"/>
+  <rect x="845" y="222" width="105" height="26" rx="4" fill="#ffffff" stroke="#26325B" stroke-width="1"/>
+  <text x="897" y="239" font-size="8.5" font-weight="700" fill="#26325B" text-anchor="middle">Full Package (Snøhund)</text>
+
+  <!-- Converge into Parallel Gateway (AND) for Owner Rate Card & Production Setup -->
+  <path d="M 950 155 L 970 155 L 970 290" fill="none" stroke="#151A24" stroke-width="1.2"/>
+  <path d="M 950 195 L 970 195" fill="none" stroke="#151A24" stroke-width="1.2"/>
+  <path d="M 950 235 L 970 235 L 970 290" fill="none" stroke="#151A24" stroke-width="1.2"/>
+
+  <!-- Parallel Gateway (AND): Split into Owner & PO Pengadaan -->
+  <polygon points="970,290 985,305 970,320 955,305" fill="#FEF3C7" stroke="#D97706" stroke-width="1.5"/>
+  <text x="970" y="310" font-size="13" font-weight="800" fill="#D97706" text-anchor="middle">+</text>
+
+  <!-- Branch 1: Owner Rate Card & Parameters -->
+  <line x1="985" y1="305" x2="1010" y2="305" stroke="#151A24" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <rect x="1010" y="285" width="135" height="48" rx="6" fill="#E6ECEE" stroke="#26325B" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="1077" y="303" class="task-text">Tetapkan Rate Card &amp;</text>
+  <text x="1077" y="315" class="task-text">Variabel (% Uang Makan 10-15%,</text>
+  <text x="1077" y="326" class="task-text">Bonus QC, Mandor)</text>
+
+  <!-- Branch 2: Kepala Produksi PO Bahan -->
+  <path d="M 970 320 L 970 725 L 1010 725" fill="none" stroke="#151A24" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <rect x="1010" y="705" width="135" height="46" rx="6" fill="#FFEDD5" stroke="#EA580C" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="1077" y="724" class="task-text" fill="#9A3412">Ajukan PO Bahan Baku</text>
+  <text x="1077" y="737" class="task-text-sub" fill="#C2410C">(Raw Material / Titipan)</text>
+
+  <!-- PO goes to Finance Lane -->
+  <path d="M 1077 751 L 1077 1255" fill="none" stroke="#151A24" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <rect x="1010" y="1255" width="135" height="50" rx="6" fill="#FFEDD5" stroke="#EA580C" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="1077" y="1274" class="task-text" fill="#9A3412">Buat &amp; Setujui PO</text>
+  <text x="1077" y="1287" class="task-text-sub" fill="#C2410C">(Supplier / Reminder CMT)</text>
+
+  <!-- ==================== 6. FASE 3: GUDANG & MEJA POTONG ==================== -->
+  <!-- From PO & Klien Inbound to Warehouse -->
+  <path d="M 1145 1280 L 1180 1280 L 1180 580" fill="none" stroke="#151A24" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Task Gudang: Terima Bahan & Mandatory Tagging FR-6.1 -->
+  <rect x="1115" y="555" width="135" height="50" rx="6" fill="#E6ECEE" stroke="#26325B" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="1182" y="574" class="task-text">Terima Bahan &amp; Pasang Tag:</text>
+  <text x="1182" y="587" class="task-text">Tag ID Klien + ID Pesanan</text>
+  <text x="1182" y="598" class="task-text-sub">(Mandatory Tagging FR-6.1)</text>
+
+  <!-- Arrow to Gateway: Validasi Anti-Kontaminasi FR-6.2 -->
+  <line x1="1250" y1="580" x2="1275" y2="580" stroke="#151A24" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Gateway XOR: Tag ID Klien & Pesanan Cocok? -->
+  <polygon points="1290,565 1305,580 1290,595 1275,580" fill="#FFFBEB" stroke="#D97706" stroke-width="1.5"/>
+  <text x="1290" y="584" font-size="11" font-weight="800" fill="#D97706" text-anchor="middle">✕</text>
+  <text x="1290" y="550" class="gateway-label">Tag ID Klien &amp;</text>
+  <text x="1290" y="560" class="gateway-label">Pesanan Cocok?</text>
+
+  <!-- Branch Tidak Cocok (DOWN to RED ALERT) -->
+  <path d="M 1290 595 L 1290 640 L 1320 640" fill="none" stroke="#B3261E" stroke-width="1.8" marker-end="url(#arrow-red)"/>
+  <text x="1295" y="618" class="edge-label" fill="#B3261E">Tidak Cocok</text>
+
+  <rect x="1320" y="620" width="130" height="42" rx="6" fill="#FEE2E2" stroke="#B3261E" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="1385" y="638" class="task-text" fill="#B3261E">Pencegahan Bahan Tertukar</text>
+  <text x="1385" y="650" class="task-text-sub" fill="#991B1B">(Validasi Anti-Kontaminasi FR-6.2)</text>
+
+  <line x1="1450" y1="641" x2="1475" y2="641" stroke="#B3261E" stroke-width="1.5" marker-end="url(#arrow-red)"/>
+  <circle cx="1490" cy="641" r="14" fill="#ffffff" stroke="#B3261E" stroke-width="3"/>
+  <text x="1490" y="670" font-size="8" font-weight="700" fill="#B3261E" text-anchor="middle">Transaksi Ditolak</text>
+  <text x="1490" y="680" font-size="7.5" font-weight="500" fill="#6B7280" text-anchor="middle">(Stok Tidak Berkurang)</text>
+
+  <!-- Branch Ya (RIGHT to Keluarkan ke Meja Potong) -->
+  <line x1="1305" y1="580" x2="1340" y2="580" stroke="#151A24" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="1315" y="573" class="edge-label" fill="#1F7A4D">Ya</text>
+
+  <rect x="1340" y="558" width="115" height="44" rx="6" fill="#E6ECEE" stroke="#26325B" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="1397" y="577" class="task-text">Keluarkan Bahan</text>
+  <text x="1397" y="590" class="task-text">ke Meja Potong</text>
+
+  <!-- Arrow to Stasiun Meja Potong -->
+  <line x1="1455" y1="580" x2="1485" y2="580" stroke="#151A24" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <rect x="1485" y="555" width="125" height="50" rx="6" fill="#E6ECEE" stroke="#26325B" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="1547" y="574" class="task-text">Meja Potong (Cutting):</text>
+  <text x="1547" y="587" class="task-text">Potong Pola (Tim Gudang)</text>
+  <text x="1547" y="598" class="task-text-sub">(Asumsi Zero Remnant &amp; CSV)</text>
+
+  <!-- ==================== 7. FASE 4: LINI PRODUKSI & STASIUN ASSEMBLY ==================== -->
+  <!-- Potongan Kain masuk ke Lini Produksi -->
+  <path d="M 1610 580 L 1650 580 L 1650 725" fill="none" stroke="#151A24" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Task Mandor: Alokasi Penjahit ±70 Mesin -->
+  <rect x="1590" y="725" width="135" height="50" rx="6" fill="#E6ECEE" stroke="#26325B" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="1657" y="744" class="task-text">Alokasi Penjahit:</text>
+  <text x="1657" y="757" class="task-text">Lintas Lini (±70 Mesin)</text>
+  <text x="1657" y="768" class="task-text-sub">&amp; Pasang Rate Card Komponen</text>
+
+  <!-- Rate Card Info Flow from Owner to Mandor -->
+  <path d="M 1145 305 L 1657 305 L 1657 725" fill="none" stroke="#4B5563" stroke-width="1.2" stroke-dasharray="5,5" marker-end="url(#arrow-dashed)"/>
+  <text x="1400" y="300" font-size="8" font-weight="600" fill="#4B5563">Rate Card &amp; Parameter Biaya</text>
+
+  <!-- Arrow down to Penjahit Operator Komponen -->
+  <line x1="1657" y1="775" x2="1657" y2="860" stroke="#151A24" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Task Operator: Jahit Komponen & Input 30 Menit Dual-Mode -->
+  <rect x="1590" y="860" width="135" height="50" rx="6" fill="#E6ECEE" stroke="#26325B" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="1657" y="879" class="task-text">Jahit Komponen &amp; Input</text>
+  <text x="1657" y="892" class="task-text">Output per 30 Menit</text>
+  <text x="1657" y="903" class="task-text-sub">(Terminal Numpad FR-7.3)</text>
+
+  <!-- Dual-Mode Verification Gateway -->
+  <line x1="1725" y1="885" x2="1750" y2="885" stroke="#151A24" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <polygon points="1765,870 1780,885 1765,900 1750,885" fill="#FFFBEB" stroke="#D97706" stroke-width="1.5"/>
+  <text x="1765" y="889" font-size="11" font-weight="800" fill="#D97706" text-anchor="middle">✕</text>
+  <text x="1765" y="860" class="gateway-label">Dual-Mode</text>
+  <text x="1765" y="869" class="gateway-label">Input?</text>
+
+  <!-- If Input by Operator: Pending Verification -> Mandor 1-Tap Approve -->
+  <path d="M 1765 870 L 1765 765 L 1735 765" fill="none" stroke="#151A24" stroke-width="1.2" stroke-dasharray="4,3" marker-end="url(#arrow)"/>
+  <text x="1775" y="810" font-size="7.5" font-weight="600" fill="#A86A00">Operator: Pending</text>
+  <text x="1775" y="820" font-size="7.5" font-weight="500" fill="#4B5563">(Mandor 1-Tap Approve)</text>
+
+  <!-- If Input by Mandor: Direct Verified -->
+  <path d="M 1780 885 L 1810 885 L 1810 990" fill="none" stroke="#151A24" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="1815" y="930" font-size="8" font-weight="700" fill="#1F7A4D">Status: Verified</text>
+
+  <!-- Lane 7: Penjahit Assembly (Stasiun Penggabungan Produk Utuh) -->
+  <rect x="1740" y="990" width="145" height="52" rx="6" fill="#E6ECEE" stroke="#26325B" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="1812" y="1009" class="task-text">Stasiun Assembly:</text>
+  <text x="1812" y="1022" class="task-text">Gabung Seluruh Komponen</text>
+  <text x="1812" y="1034" class="task-text-sub">Menjadi 1 Produk Pakaian Utuh</text>
+
+  <!-- Arrow from Assembly to Mandor Verification & Ubah Status Menunggu QC -->
+  <path d="M 1812 990 L 1812 765 L 1845 765" fill="none" stroke="#151A24" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Task Mandor: Verifikasi Perakitan & Menunggu QC -->
+  <rect x="1845" y="740" width="130" height="50" rx="6" fill="#E6ECEE" stroke="#26325B" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="1910" y="759" class="task-text">Verifikasi Assembly &amp;</text>
+  <text x="1910" y="772" class="task-text">Ubah Status:</text>
+  <text x="1910" y="783" class="task-text-sub font-bold" fill="#26325B">"Menunggu QC" (FR-7.4)</text>
+
+  <!-- Realtime Broadcast Dashboards -->
+  <path d="M 1910 740 L 1910 350 L 1940 350" fill="none" stroke="#2563EB" stroke-width="1.2" stroke-dasharray="5,5" marker-end="url(#arrow-blue)"/>
+  <rect x="1940" y="330" width="125" height="44" rx="6" fill="#ffffff" stroke="#2563EB" stroke-width="1.2"/>
+  <text x="2002" y="348" font-size="8.5" font-weight="700" fill="#1E40AF" text-anchor="middle">Dashboard Owner:</text>
+  <text x="2002" y="361" font-size="8" font-weight="500" fill="#3B82F6" text-anchor="middle">Pantau KPI Real-Time</text>
+
+  <path d="M 1910 330 L 1910 220 L 1940 220" fill="none" stroke="#7A5BB0" stroke-width="1.2" stroke-dasharray="5,5" marker-end="url(#arrow-blue)"/>
+  <rect x="1940" y="200" width="125" height="44" rx="6" fill="#ffffff" stroke="#7A5BB0" stroke-width="1.2"/>
+  <text x="2002" y="218" font-size="8.5" font-weight="700" fill="#6B21A8" text-anchor="middle">Portal Klien B2B:</text>
+  <text x="2002" y="231" font-size="8" font-weight="500" fill="#7E22CE" text-anchor="middle">Pantau Progres &amp; Stok</text>
+
+  <!-- ==================== 8. FASE 5: QC & BARANG JADI ==================== -->
+  <!-- From Menunggu QC down to Terminal QC -->
+  <path d="M 1975 765 L 2005 765 L 2005 1130" fill="none" stroke="#151A24" stroke-width="1.8" marker-end="url(#arrow)"/>
+  <text x="2010" y="980" font-size="8.5" font-weight="700" fill="#26325B">Pakaian Utuh ke QC</text>
+
+  <!-- Task QC: Inspeksi 1 Produk Utuh -->
+  <rect x="1940" y="1130" width="130" height="50" rx="6" fill="#E6ECEE" stroke="#26325B" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="2005" y="1149" class="task-text">Inspeksi Produk Utuh</text>
+  <text x="2005" y="1162" class="task-text">(Terminal QC: 3 Tombol)</text>
+  <text x="2005" y="1173" class="task-text-sub">Bukan Per Komponen Lepas</text>
+
+  <!-- Gateway XOR: Hasil QC? -->
+  <line x1="2070" y1="1155" x2="2095" y2="1155" stroke="#151A24" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <polygon points="2110,1140 2125,1155 2110,1170 2095,1155" fill="#FFFBEB" stroke="#D97706" stroke-width="1.5"/>
+  <text x="2110" y="1159" font-size="11" font-weight="800" fill="#D97706" text-anchor="middle">✕</text>
+  <text x="2110" y="1130" class="gateway-label">Hasil QC?</text>
+
+  <!-- Branch 1: Lolos (PASS) -> Down to Pool Bonus & Barang Jadi -->
+  <path d="M 2110 1170 L 2110 1195 L 2110 1205" fill="none" stroke="#1F7A4D" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="2115" y="1185" class="edge-label" fill="#1F7A4D">Lolos</text>
+
+  <rect x="2045" y="1205" width="130" height="42" rx="6" fill="#DCFCE7" stroke="#1F7A4D" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="2110" y="1223" class="task-text" fill="#14532D">Akumulasi Pool Bonus QC</text>
+  <text x="2110" y="1236" class="task-text-sub" fill="#166534">(+Rp 300 per Unit Lolos)</text>
+
+  <!-- Branch 2: Perbaikan (REPAIR) -> Loop back to Assembly/Lini (No Clawback) -->
+  <path d="M 2125 1150 L 2150 1150 L 2150 1060 L 1812 1060 L 1812 1042" fill="none" stroke="#D97706" stroke-width="1.3" stroke-dasharray="5,4" marker-end="url(#arrow)"/>
+  <text x="1950" y="1055" font-size="8" font-weight="700" fill="#B45309">Perbaikan (Repair) • No Clawback: Upah Penjahit TIDAK Dipotong</text>
+
+  <!-- Branch 3: Cacat (REJECT) -> Alihkan Rute (No Clawback) -->
+  <line x1="2125" y1="1155" x2="2165" y2="1155" stroke="#B3261E" stroke-width="1.5" marker-end="url(#arrow-red)"/>
+  <text x="2130" y="1147" class="edge-label" fill="#B3261E">Cacat</text>
+
+  <rect x="2165" y="1135" width="115" height="40" rx="6" fill="#FEE2E2" stroke="#B3261E" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="2222" y="1152" class="task-text" fill="#B3261E">Catat Jenis Cacat &amp;</text>
+  <text x="2222" y="1165" class="task-text" fill="#B3261E">Alihkan Rute Barang</text>
+
+  <line x1="2280" y1="1155" x2="2305" y2="1155" stroke="#B3261E" stroke-width="1.5" marker-end="url(#arrow-red)"/>
+  <circle cx="2320" cy="1155" r="14" fill="#ffffff" stroke="#B3261E" stroke-width="3"/>
+  <text x="2320" y="1182" font-size="8" font-weight="700" fill="#B3261E" text-anchor="middle">Barang Cacat</text>
+  <text x="2320" y="1192" font-size="7.5" font-weight="500" fill="#6B7280" text-anchor="middle">Dialihkan</text>
+
+  <!-- ==================== 9. FASE 6: PENGGAJIAN & REKAP (SUB-PROSES) ==================== -->
+  <!-- Connection from Pool Bonus to Finance -->
+  <path d="M 2110 1247 L 2110 1285 L 2210 1285" fill="none" stroke="#151A24" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Connection from Verified Output in Lini to Payroll -->
+  <path d="M 1657 910 L 1657 1310 L 2210 1310" fill="none" stroke="#151A24" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="1950" y="1305" font-size="8.5" font-weight="700" fill="#26325B">Output 30-Menit Verified (Hari Sabtu)</text>
+
+  <!-- Large Sub-Process Box: Penggajian & Rekap (Workspace Payroll & Biaya) -->
+  <rect x="2210" y="1245" width="335" height="160" rx="8" fill="#F0F9FF" stroke="#0284C7" stroke-width="1.5" stroke-dasharray="6,4"/>
+  <text x="2225" y="1262" font-size="9" font-weight="800" fill="#0369A1">Sub-Proses: Penggajian &amp; Rekap (Workspace Payroll &amp; Biaya)</text>
+
+  <!-- Task 1: Hitung Gaji Borongan Mingguan -->
+  <rect x="2225" y="1275" width="95" height="44" rx="4" fill="#ffffff" stroke="#0284C7" stroke-width="1.2" filter="url(#shadow)"/>
+  <text x="2272" y="1292" font-size="8" font-weight="700" fill="#151A24" text-anchor="middle">Hitung Borongan:</text>
+  <text x="2272" y="1304" font-size="7.5" font-weight="600" fill="#0369A1" text-anchor="middle">Σ(Output x Tarif)</text>
+
+  <!-- Arrow to Task 2: Uang Makan Fleksibel -->
+  <line x1="2320" y1="1297" x2="2335" y2="1297" stroke="#0284C7" stroke-width="1.2" marker-end="url(#arrow)"/>
+
+  <!-- Task 2: Input % Uang Makan 10-15% Tunai -->
+  <rect x="2335" y="1275" width="95" height="44" rx="4" fill="#ffffff" stroke="#0284C7" stroke-width="1.2" filter="url(#shadow)"/>
+  <text x="2382" y="1292" font-size="8" font-weight="700" fill="#151A24" text-anchor="middle">Uang Makan Tunai:</text>
+  <text x="2382" y="1304" font-size="7.5" font-weight="600" fill="#0369A1" text-anchor="middle">10–15% ke Slip Gaji</text>
+
+  <!-- Arrow to Task 3: Bonus QC 3-Arah -->
+  <line x1="2430" y1="1297" x2="2445" y2="1297" stroke="#0284C7" stroke-width="1.2" marker-end="url(#arrow)"/>
+
+  <!-- Task 3: Bagi Pool Bonus QC 3-Arah -->
+  <rect x="2445" y="1275" width="90" height="44" rx="4" fill="#ffffff" stroke="#0284C7" stroke-width="1.2" filter="url(#shadow)"/>
+  <text x="2490" y="1292" font-size="8" font-weight="700" fill="#151A24" text-anchor="middle">Bonus QC 3-Arah:</text>
+  <text x="2490" y="1304" font-size="7" font-weight="600" fill="#0369A1" text-anchor="middle">2 Mandor + 1 Kepala</text>
+
+  <!-- Row 2 inside sub-process -->
+  <!-- Task 4: Alokasi Overhead per Unit -->
+  <rect x="2225" y="1335" width="95" height="44" rx="4" fill="#ffffff" stroke="#0284C7" stroke-width="1.2" filter="url(#shadow)"/>
+  <text x="2272" y="1352" font-size="8" font-weight="700" fill="#151A24" text-anchor="middle">Alokasi Overhead</text>
+  <text x="2272" y="1364" font-size="7.5" font-weight="600" fill="#0369A1" text-anchor="middle">per Unit (Bulanan)</text>
+
+  <!-- Arrow to Task 5: Terbitkan Invoice & Slip Gaji -->
+  <line x1="2320" y1="1357" x2="2335" y2="1357" stroke="#0284C7" stroke-width="1.2" marker-end="url(#arrow)"/>
+
+  <!-- Task 5: Terbitkan Invoice & Slip Gaji + Ekspor CSV -->
+  <rect x="2335" y="1335" width="105" height="44" rx="4" fill="#ffffff" stroke="#0284C7" stroke-width="1.2" filter="url(#shadow)"/>
+  <text x="2387" y="1352" font-size="8" font-weight="700" fill="#151A24" text-anchor="middle">Terbitkan Invoice &amp;</text>
+  <text x="2387" y="1364" font-size="7.5" font-weight="600" fill="#0369A1" text-anchor="middle">Slip Gaji (Ekspor CSV)</text>
+
+  <!-- Arrow to Final End Event -->
+  <line x1="2440" y1="1357" x2="2475" y2="1357" stroke="#151A24" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Final End Event: Siklus Selesai -->
+  <circle cx="2495" cy="1357" r="14" fill="#ffffff" stroke="#151A24" stroke-width="4"/>
+  <circle cx="2495" cy="1357" r="8" fill="#151A24"/>
+  <text x="2495" y="1385" font-size="8.5" font-weight="800" fill="#151A24" text-anchor="middle">Siklus Selesai</text>
+
+  <!-- ==================== 10. LEGENDA & FOOTNOTE ==================== -->
+  <rect x="45" y="1435" width="1120" height="65" rx="4" fill="#F8FAFC" stroke="#CBD5E1" stroke-width="1"/>
+  <text x="60" y="1452" font-size="9" font-weight="800" fill="#151A24">LEGENDA NOTASI BPMN 2.0:</text>
+
+  <!-- Legend Item 1: Task Standar -->
+  <rect x="60" y="1462" width="24" height="15" rx="3" fill="#E6ECEE" stroke="#26325B" stroke-width="1"/>
+  <text x="90" y="1473" class="legend-text">Aktivitas / Task Operasional</text>
+
+  <!-- Legend Item 2: Task Pengadaan / Bonus -->
+  <rect x="230" y="1462" width="24" height="15" rx="3" fill="#FFEDD5" stroke="#EA580C" stroke-width="1"/>
+  <text x="260" y="1473" class="legend-text">Task Pengadaan / Kas / Bonus</text>
+
+  <!-- Legend Item 3: Task Blokir Merah -->
+  <rect x="420" y="1462" width="24" height="15" rx="3" fill="#FEE2E2" stroke="#B3261E" stroke-width="1"/>
+  <text x="450" y="1473" class="legend-text">Task Blokir / Penolakan Sistem</text>
+
+  <!-- Legend Item 4: Start / End Event -->
+  <circle cx="615" cy="1470" r="7" fill="#ffffff" stroke="#151A24" stroke-width="1.5"/>
+  <circle cx="633" cy="1470" r="7" fill="#ffffff" stroke="#151A24" stroke-width="2.5"/>
+  <text x="648" y="1473" class="legend-text">Start / End Event</text>
+
+  <!-- Legend Item 5: Gateway XOR -->
+  <polygon points="740,1463 748,1470 740,1477 732,1470" fill="#FFFBEB" stroke="#D97706" stroke-width="1"/>
+  <text x="740" y="1473" font-size="8" font-weight="700" fill="#D97706" text-anchor="middle">✕</text>
+  <text x="755" y="1473" class="legend-text">Gateway Eksklusif (XOR)</text>
+
+  <!-- Legend Item 6: Gateway AND -->
+  <polygon points="885,1463 893,1470 885,1477 877,1470" fill="#FEF3C7" stroke="#D97706" stroke-width="1"/>
+  <text x="885" y="1473.5" font-size="9" font-weight="800" fill="#D97706" text-anchor="middle">+</text>
+  <text x="900" y="1473" class="legend-text">Gateway Paralel (AND)</text>
+
+  <!-- Legend Item 7: Sequence Flow -->
+  <line x1="1025" y1="1470" x2="1055" y2="1470" stroke="#151A24" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="1063" y="1473" class="legend-text">Alur Urutan (Sequence Flow)</text>
+
+  <!-- Footer References -->
+  <text x="1190" y="1465" font-size="9" font-weight="600" fill="#475569">Referensi Master BRD/PRD v2.0:</text>
+  <text x="1190" y="1480" font-size="8.5" font-weight="400" fill="#64748B">FR-6.1/6.2 inventaris multi-tenant &amp; anti-kontaminasi | FR-7.1–7.4 alokasi dinamis ±70 mesin, input 30 menit &amp; stasiun assembly | FR-10.1–10.4 payroll borongan, uang makan tunai 10-15%, bonus QC 3-arah, overhead</text>
+</svg>
