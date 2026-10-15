@@ -9,8 +9,9 @@ export async function GET() {
     success: true,
     configured: isConfigured,
     mode: isConfigured ? "live" : "simulated",
-    bot_username: isConfigured ? "@LuklaOpsBot" : "Simulator Mode (Pending Token)",
+    bot_username: isConfigured ? "@LuklaManufactur_Bot" : "Simulator Mode (Pending Token)",
     default_chat_id: chatId ? `${chatId.slice(0, 4)}****` : "Belum diset",
+    raw_chat_id: chatId || "",
   });
 }
 
@@ -20,7 +21,15 @@ export async function POST(req: NextRequest) {
     const { event_type, order_id, client_name, article_name, quantity, scheme, chat_id, message } = body;
 
     const token = process.env.TELEGRAM_BOT_TOKEN || "";
-    const targetChatId = chat_id || process.env.TELEGRAM_DEFAULT_CHAT_ID || "123456789";
+    const targetChatId = chat_id || process.env.TELEGRAM_DEFAULT_CHAT_ID || "";
+
+    if (token && !targetChatId) {
+      return NextResponse.json({
+        success: false,
+        mode: "live",
+        message: "Chat ID belum ditentukan! Silakan masukkan Chat ID kamu (misal: 6050043896) di kolom input 'ID Chat Telegram' atau pasang TELEGRAM_DEFAULT_CHAT_ID di Vercel.",
+      });
+    }
 
     // 1. Try forwarding to Python FastAPI RAG microservice if online
     const ragServiceUrl = process.env.NEXT_PUBLIC_RAG_SERVICE_URL || "http://localhost:8000";
@@ -108,7 +117,7 @@ export async function POST(req: NextRequest) {
         "Artikel: *Winter Parka V2 (Heavyweight)*\n" +
         "Klien: *Snøhund*\n" +
         "Skema Maklon: *SEMI_CMT* | Jumlah: *500 pcs*\n\n" +
-        "Progres Produksi: `[▓▓▓▓▓▓▓▓░░]` *80%*\n\n" +
+        "Progres Produksi: `[80%]` Selesai Meja Potong & Perakitan\n\n" +
         "1. ✅ Intake Spesifikasi & Sampel Disetujui (Approved v2)\n" +
         "2. ✅ Penerimaan Bahan & Meja Potong (Cutting Station)\n" +
         "3. ✅ Jahit Komponen Lepas (Operator 30-Menit)\n" +
@@ -135,18 +144,45 @@ export async function POST(req: NextRequest) {
         });
 
         const tgData = await tgRes.json();
+        
+        if (!tgRes.ok || !tgData.ok) {
+          let errorDesc = tgData?.description || "Gagal mengirim ke Telegram API";
+          if (tgData?.error_code === 403) {
+            errorDesc = "Bot belum di-START! Buka @LuklaManufactur_Bot di aplikasi Telegram kamu, lalu klik tombol 'START' (atau kirim /start) agar bot diizinkan mengirim pesan ke kamu.";
+          } else if (tgData?.error_code === 400) {
+            errorDesc = `Chat ID (${targetChatId}) tidak ditemukan atau belum pernah chat dengan bot. Pastikan kamu sudah klik START di @LuklaManufactur_Bot.`;
+          }
+
+          return NextResponse.json({
+            success: false,
+            mode: "live",
+            message: errorDesc,
+            telegram_response: tgData,
+            chat_id: targetChatId,
+            preview: {
+              text: textToSend,
+              reply_markup: replyMarkup,
+            },
+          });
+        }
+
         return NextResponse.json({
-          success: tgRes.ok,
+          success: true,
           mode: "live",
-          delivered: tgRes.ok,
+          delivered: true,
+          message: `Notifikasi berhasil dikirim langsung ke Telegram Chat ID ${targetChatId}!`,
           telegram_response: tgData,
           chat_id: targetChatId,
+          preview: {
+            text: textToSend,
+            reply_markup: replyMarkup,
+          },
         });
       } catch (err: any) {
         return NextResponse.json({
           success: false,
           mode: "live_error",
-          error: err.message,
+          message: `Terjadi kendala jaringan: ${err.message}`,
         }, { status: 502 });
       }
     }

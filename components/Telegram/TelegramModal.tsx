@@ -14,7 +14,7 @@ export const TelegramModal: React.FC<TelegramModalProps> = ({ isOpen, onClose })
   const [sending, setSending] = useState(false);
   const [result, setResult] = useState<any>(null);
   const [customText, setCustomText] = useState("");
-  const [targetChatId, setTargetChatId] = useState("");
+  const [targetChatId, setTargetChatId] = useState("6050043896");
 
   const fetchStatus = async () => {
     try {
@@ -22,6 +22,9 @@ export const TelegramModal: React.FC<TelegramModalProps> = ({ isOpen, onClose })
       const res = await fetch("/api/telegram");
       const data = await res.json();
       setStatus(data);
+      if (data.raw_chat_id) {
+        setTargetChatId(data.raw_chat_id);
+      }
     } catch {
       setStatus({ configured: false, mode: "simulated", bot_username: "Simulator Mode" });
     } finally {
@@ -225,13 +228,15 @@ export const TelegramModal: React.FC<TelegramModalProps> = ({ isOpen, onClose })
                   Mode: {result.mode || (result.data?.status === "delivered" ? "Live" : "Simulasi")}
                 </span>
               </div>
+              {result.message && (
+                <p className={`text-[11px] leading-relaxed ${result.success ? "text-teks-sekunder" : "text-red-800 font-medium bg-red-100/70 p-2 rounded border border-red-200"}`}>
+                  {result.message}
+                </p>
+              )}
               {result.preview?.text && (
                 <div className="bg-white p-2.5 rounded border border-garis font-mono text-[11px] whitespace-pre-wrap max-h-40 overflow-y-auto">
                   {result.preview.text}
                 </div>
-              )}
-              {result.message && (
-                <p className="text-[11px] text-teks-sekunder">{result.message}</p>
               )}
             </div>
           )}
