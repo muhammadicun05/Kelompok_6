@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BPMN 2.0: Alur Integrasi Telegram Bot Pabrik — Lukla Operations Engine</title>
+  <style>
+    :root {
+      --kabut: #E6ECEE;
+      --lembar: #F8FAFA;
+      --celup-indigo: #26325B;
+      --tinta: #151A24;
+      --kapur: #E8E36B;
+      --benang-abu: #9AA5AE;
+      --status-lolos: #1F7A4D;
+      --status-perbaikan: #A86A00;
+      --status-cacat: #B3261E;
+      --garis: #D1DCE0;
+    }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    }
+    body {
+      background-color: #0E131F;
+      color: var(--lembar);
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    header {
+      background: var(--celup-indigo);
+      border-bottom: 2px solid var(--kapur);
+      padding: 12px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      z-index: 10;
+    }
+    .header-title h1 {
+      font-size: 16px;
+      font-weight: 700;
+      color: #FFFFFF;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .header-title p {
+      font-size: 11px;
+      color: #A3B8CC;
+    }
+    .toolbar {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+    .btn {
+      background: rgba(255, 255, 255, 0.12);
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      color: #FFFFFF;
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s;
+    }
+    .btn:hover {
+      background: rgba(255, 255, 255, 0.25);
+      border-color: var(--kapur);
+    }
+    .btn-primary {
+      background: var(--kapur);
+      color: var(--tinta);
+      font-weight: 700;
+      border-color: var(--kapur);
+    }
+    .btn-primary:hover {
+      background: #F2ED7F;
+    }
+    .viewport {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+      cursor: grab;
+      background: #0B0F17;
+      background-image: 
+        radial-gradient(rgba(255, 255, 255, 0.08) 1px, transparent 1px);
+      background-size: 24px 24px;
+    }
+    .viewport:active {
+      cursor: grabbing;
+    }
+    #svgContainer {
+      position: absolute;
+      top: 0;
+      left: 0;
+      transform-origin: 0 0;
+      transition: transform 0.05s ease-out;
+    }
+    svg {
+      display: block;
+      filter: drop-shadow(0 8px 24px rgba(0,0,0,0.5));
+    }
+    .legend {
+      position: absolute;
+      bottom: 16px;
+      left: 16px;
+      background: rgba(21, 26, 36, 0.92);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      padding: 10px 14px;
+      border-radius: 8px;
+      font-size: 11px;
+      display: flex;
+      gap: 16px;
+      align-items: center;
+      z-index: 5;
+    }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .legend-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 3px;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="header-title">
+      <h1>
+        <span>📲</span>
+        BPMN 2.0: Alur Integrasi Telegram Bot Pabrik (End-to-End)
+      </h1>
+      <p>Lukla Operations Engine — Pocket Bridge untuk Owner, Mandor, dan Klien Maklon B2B</p>
+    </div>
+    <div class="toolbar">
+      <button class="btn" onclick="zoomIn()">🔍+ Zoom In</button>
+      <button class="btn" onclick="zoomOut()">🔍- Zoom Out</button>
+      <button class="btn" onclick="resetZoom()">⟲ Reset</button>
+      <button class="btn btn-primary" onclick="window.print()">🖨️ Cetak / Simpan PDF</button>
+    </div>
+  </header>
+
+  <div class="viewport" id="viewport">
+    <div id="svgContainer">
+      <svg width="2200" height="1350" viewBox="0 0 2200 1350" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="headerGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#26325B" />
+            <stop offset="100%" stop-color="#1A2340" />
+          </linearGradient>
+          <linearGradient id="swimlaneLantai" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stop-color="#FFFFFF" />
+            <stop offset="100%" stop-color="#F4F8FA" />
+          </linearGradient>
+          <linearGradient id="swimlaneBackend" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stop-color="#F8FAFA" />
+            <stop offset="100%" stop-color="#EEF4F7" />
+          </linearGradient>
+          <linearGradient id="swimlaneGateway" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stop-color="#FFFFFF" />
+            <stop offset="100%" stop-color="#F4F8FA" />
+          </linearGradient>
+          <linearGradient id="swimlaneMobile" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stop-color="#F8FAFA" />
+            <stop offset="100%" stop-color="#EEF4F7" />
+          </linearGradient>
+          <filter id="shadow" x="-5%" y="-5%" width="110%" height="110%">
+            <feDropShadow dx="0" dy="3" stdDeviation="4" flood-opacity="0.15" />
+          </filter>
+          <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="#26325B" />
+          </marker>
+          <marker id="arrowRed" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="#B3261E" />
+          </marker>
+          <marker id="arrowGreen" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="#1F7A4D" />
+          </marker>
+        </defs>
+
+        <!-- BACKGROUND CANVAS -->
+        <rect width="2200" height="1350" fill="#EAEFF2" />
+
+        <!-- MASTER POOL BORDER -->
+        <rect x="40" y="40" width="2120" height="1260" rx="10" fill="#FFFFFF" stroke="#9AA5AE" stroke-width="2" />
+
+        <!-- POOL TITLE BAR -->
+        <rect x="40" y="40" width="60" height="1260" rx="10" fill="#26325B" />
+        <text x="-670" y="78" transform="rotate(-90)" fill="#FFFFFF" font-size="16" font-weight="bold" letter-spacing="3" text-anchor="middle">
+          LUKLA OPERATIONS ENGINE — TELEGRAM BOT INTEGRATION POOL
+        </text>
+
+        <!-- SWIMLANE 1: LANTAI PABRIK & TERMINAL FISIK (y: 40 to 350, height 310) -->
+        <rect x="100" y="40" width="2060" height="310" fill="url(#swimlaneLantai)" stroke="#D1DCE0" stroke-width="1" />
+        <rect x="100" y="40" width="40" height="310" fill="#3D4B75" />
+        <text x="-195" y="125" transform="rotate(-90)" fill="#FFFFFF" font-size="13" font-weight="bold" text-anchor="middle">
+          Lantai Pabrik & Terminal
+        </text>
+
+        <!-- SWIMLANE 2: LUKLA ENGINE BACKEND & DATABASE (y: 350 to 670, height 320) -->
+        <rect x="100" y="350" width="2060" height="320" fill="url(#swimlaneBackend)" stroke="#D1DCE0" stroke-width="1" />
+        <rect x="100" y="350" width="40" height="320" fill="#2F5FA8" />
+        <text x="-510" y="125" transform="rotate(-90)" fill="#FFFFFF" font-size="13" font-weight="bold" text-anchor="middle">
+          Lukla Backend & API (/api/telegram)
+        </text>
+
+        <!-- SWIMLANE 3: TELEGRAM CLOUD GATEWAY (y: 670 to 970, height 300) -->
+        <rect x="100" y="670" width="2060" height="300" fill="url(#swimlaneGateway)" stroke="#D1DCE0" stroke-width="1" />
+        <rect x="100" y="670" width="40" height="300" fill="#0088CC" />
+        <text x="-820" y="125" transform="rotate(-90)" fill="#FFFFFF" font-size="13" font-weight="bold" text-anchor="middle">
+          Telegram Cloud Bot API
+        </text>
+
+        <!-- SWIMLANE 4: PENERIMA MOBILE (OWNER / MANDOR / KLIEN) (y: 970 to 1300, height 330) -->
+        <rect x="100" y="970" width="2060" height="330" fill="url(#swimlaneMobile)" stroke="#D1DCE0" stroke-width="1" />
+        <rect x="100" y="970" width="40" height="330" fill="#151A24" />
+        <text x="-1135" y="125" transform="rotate(-90)" fill="#FFFFFF" font-size="13" font-weight="bold" text-anchor="middle">
+          Aplikasi Telegram Pengguna
+        </text>
+
+        <!-- ========================================================================= -->
+        <!-- ALUR 1: QUICK ACTION APPROVAL ORDER (KOLOM KIRI: x = 160 s/d 660) -->
+        <!-- ========================================================================= -->
+        <!-- Header Kasus 1 -->
+        <rect x="160" y="55" width="480" height="30" rx="5" fill="#E8F1F5" stroke="#26325B" stroke-dasharray="3 3" />
+        <text x="400" y="75" fill="#26325B" font-size="12" font-weight="bold" text-anchor="middle">
+          KASUS 1: 1-CLICK ORDER APPROVAL (OWNER)
+        </text>
+
+        <!-- Event Start 1 -->
+        <circle cx="210" cy="140" r="18" fill="#1F7A4D" stroke="#0D4B2A" stroke-width="3" />
+        <text x="210" y="145" fill="#FFFFFF" font-size="14" font-weight="bold" text-anchor="middle">▶</text>
+        <text x="210" y="180" fill="#151A24" font-size="11" font-weight="bold" text-anchor="middle">Sampler Terbitkan</text>
+        <text x="210" y="195" fill="#5A6872" font-size="10" text-anchor="middle">Order Massal (v2)</text>
+
+        <!-- Task 1: Engine Process -->
+        <rect x="300" y="420" width="160" height="70" rx="8" fill="#FFFFFF" stroke="#26325B" stroke-width="2" filter="url(#shadow)" />
+        <text x="380" y="445" fill="#26325B" font-size="12" font-weight="bold" text-anchor="middle">Susun Payload</text>
+        <text x="380" y="462" fill="#5A6872" font-size="10" text-anchor="middle">Order Approval</text>
+        <text x="380" y="476" fill="#1F7A4D" font-size="9" font-weight="bold" text-anchor="middle">+ Tombol Inline</text>
+
+        <!-- Task 2: Telegram Gateway -->
+        <rect x="300" y="740" width="160" height="70" rx="8" fill="#EBF7FD" stroke="#0088CC" stroke-width="2" filter="url(#shadow)" />
+        <text x="380" y="765" fill="#0088CC" font-size="12" font-weight="bold" text-anchor="middle">POST /sendMessage</text>
+        <text x="380" y="782" fill="#5A6872" font-size="10" text-anchor="middle">Kirim ke Chat ID Owner</text>
+        <text x="380" y="796" fill="#0088CC" font-size="9" font-weight="bold" text-anchor="middle">api.telegram.org</text>
+
+        <!-- Task 3: Mobile Owner Receive -->
+        <rect x="290" y="1030" width="180" height="85" rx="8" fill="#FFFFFF" stroke="#151A24" stroke-width="2" filter="url(#shadow)" />
+        <text x="380" y="1055" fill="#151A24" font-size="12" font-weight="bold" text-anchor="middle">Pesan Masuk di HP Owner</text>
+        <text x="380" y="1072" fill="#5A6872" font-size="10" text-anchor="middle">Detail: Snøhund 500 pcs</text>
+        <rect x="305" y="1080" width="70" height="24" rx="4" fill="#1F7A4D" />
+        <text x="340" y="1096" fill="#FFFFFF" font-size="10" font-weight="bold" text-anchor="middle">✅ Setujui</text>
+        <rect x="385" y="1080" width="70" height="24" rx="4" fill="#B3261E" />
+        <text x="420" y="1096" fill="#FFFFFF" font-size="10" font-weight="bold" text-anchor="middle">❌ Tolak</text>
+
+        <!-- Gateway Decision -->
+        <polygon points="560,1072 600,1037 640,1072 600,1107" fill="#E8E36B" stroke="#26325B" stroke-width="2" />
+        <text x="600" y="1076" fill="#26325B" font-size="11" font-weight="bold" text-anchor="middle">Pilihan?</text>
+
+        <!-- Callback Task Backend -->
+        <rect x="520" y="420" width="160" height="70" rx="8" fill="#EBF9F1" stroke="#1F7A4D" stroke-width="2" filter="url(#shadow)" />
+        <text x="600" y="445" fill="#1F7A4D" font-size="12" font-weight="bold" text-anchor="middle">Update Database</text>
+        <text x="600" y="462" fill="#151A24" font-size="10" text-anchor="middle">Status Order: ACTIVE</text>
+        <text x="600" y="476" fill="#5A6872" font-size="9" text-anchor="middle">Kunci Spesifikasi BOM/SMV</text>
+
+        <!-- End Event 1 -->
+        <circle cx="600" cy="140" r="18" fill="#E6ECEE" stroke="#1F7A4D" stroke-width="4" />
+        <text x="600" y="145" fill="#1F7A4D" font-size="14" font-weight="bold" text-anchor="middle">■</text>
+        <text x="600" y="180" fill="#1F7A4D" font-size="11" font-weight="bold" text-anchor="middle">Gudang Buka Meja Potong</text>
+
+        <!-- Lines Flow 1 -->
+        <path d="M 228 140 L 380 140 L 380 420" fill="none" stroke="#26325B" stroke-width="2" marker-end="url(#arrow)" />
+        <path d="M 380 490 L 380 740" fill="none" stroke="#26325B" stroke-width="2" marker-end="url(#arrow)" />
+        <path d="M 380 810 L 380 1030" fill="none" stroke="#26325B" stroke-width="2" marker-end="url(#arrow)" />
+        <path d="M 470 1072 L 560 1072" fill="none" stroke="#26325B" stroke-width="2" marker-end="url(#arrow)" />
+        <path d="M 600 1037 L 600 490" fill="none" stroke="#1F7A4D" stroke-width="2" marker-end="url(#arrowGreen)" stroke-dasharray="4 4" />
+        <text x="610" y="760" fill="#1F7A4D" font-size="10" font-weight="bold">Webhook: [Setujui]</text>
+        <path d="M 600 420 L 600 162" fill="none" stroke="#1F7A4D" stroke-width="2" marker-end="url(#arrowGreen)" />
+
+
+        <!-- ========================================================================= -->
+        <!-- ALUR 2: EMERGENCY ANTI-KONTAMINASI FR-6.2 (KOLOM TENGAH: x = 750 s/d 1200) -->
+        <!-- ========================================================================= -->
+        <rect x="730" y="55" width="480" height="30" rx="5" fill="#FDF2F2" stroke="#B3261E" stroke-dasharray="3 3" />
+        <text x="970" y="75" fill="#B3261E" font-size="12" font-weight="bold" text-anchor="middle">
+          KASUS 2: EMERGENCY ALARM ANTI-KONTAMINASI (FR-6.2)
+        </text>
+
+        <!-- Event Start 2: Error Scan -->
+        <circle cx="780" cy="140" r="18" fill="#B3261E" stroke="#7A1812" stroke-width="3" />
+        <text x="780" y="145" fill="#FFFFFF" font-size="13" font-weight="bold" text-anchor="middle">⚡</text>
+        <text x="780" y="180" fill="#B3261E" font-size="11" font-weight="bold" text-anchor="middle">Gudang Salah Scan</text>
+        <text x="780" y="195" fill="#5A6872" font-size="10" text-anchor="middle">Kain Klien A utk Order B</text>
+
+        <!-- Task 4: Screen Blocker FR-6.2 -->
+        <rect x="850" y="105" width="160" height="70" rx="8" fill="#FDF2F2" stroke="#B3261E" stroke-width="2" filter="url(#shadow)" />
+        <text x="930" y="130" fill="#B3261E" font-size="12" font-weight="bold" text-anchor="middle">Layar Merah HTTP 403</text>
+        <text x="930" y="147" fill="#151A24" font-size="10" text-anchor="middle">Blokir Pengeluaran Kain</text>
+        <text x="930" y="161" fill="#7A1812" font-size="9" font-weight="bold" text-anchor="middle">Audio Sirine Berbunyi</text>
+
+        <!-- Task 5: Engine Alert Trigger -->
+        <rect x="850" y="420" width="160" height="70" rx="8" fill="#FFFFFF" stroke="#B3261E" stroke-width="2" filter="url(#shadow)" />
+        <text x="930" y="445" fill="#B3261E" font-size="12" font-weight="bold" text-anchor="middle">Audit Log Kontaminasi</text>
+        <text x="930" y="462" fill="#5A6872" font-size="10" text-anchor="middle">Format Pesan Emergency</text>
+        <text x="930" y="476" fill="#B3261E" font-size="9" font-weight="bold" text-anchor="middle">Target: Grup Mandor</text>
+
+        <!-- Task 6: Telegram Cloud Broadcast -->
+        <rect x="850" y="740" width="160" height="70" rx="8" fill="#EBF7FD" stroke="#0088CC" stroke-width="2" filter="url(#shadow)" />
+        <text x="930" y="765" fill="#0088CC" font-size="12" font-weight="bold" text-anchor="middle">Broadcast Urgent</text>
+        <text x="930" y="782" fill="#5A6872" font-size="10" text-anchor="middle">Prioritas Tinggi</text>
+        <text x="930" y="796" fill="#B3261E" font-size="9" font-weight="bold" text-anchor="middle">Notifikasi Bergetar/Bunyi</text>
+
+        <!-- Task 7: Mandor Phone Alert -->
+        <rect x="840" y="1030" width="180" height="85" rx="8" fill="#FDF2F2" stroke="#B3261E" stroke-width="2" filter="url(#shadow)" />
+        <text x="930" y="1055" fill="#B3261E" font-size="12" font-weight="bold" text-anchor="middle">HP Mandor Berdering!</text>
+        <text x="930" y="1072" fill="#151A24" font-size="10" text-anchor="middle">"Peringatan Meja Potong!"</text>
+        <text x="930" y="1090" fill="#7A1812" font-size="9" font-weight="bold" text-anchor="middle">Order ORD-2026-005</text>
+
+        <!-- Action Mandor ke Meja Potong -->
+        <rect x="1050" y="105" width="160" height="70" rx="8" fill="#EBF9F1" stroke="#1F7A4D" stroke-width="2" filter="url(#shadow)" />
+        <text x="1130" y="130" fill="#1F7A4D" font-size="12" font-weight="bold" text-anchor="middle">Mandor Datangi Meja</text>
+        <text x="1130" y="147" fill="#151A24" font-size="10" text-anchor="middle">Tegur Petugas & Ganti Roll</text>
+        <text x="1130" y="161" fill="#1F7A4D" font-size="9" font-weight="bold" text-anchor="middle">Kain Aman dari Gunting!</text>
+
+        <!-- Lines Flow 2 -->
+        <path d="M 798 140 L 850 140" fill="none" stroke="#B3261E" stroke-width="2" marker-end="url(#arrowRed)" />
+        <path d="M 930 175 L 930 420" fill="none" stroke="#B3261E" stroke-width="2" marker-end="url(#arrowRed)" />
+        <path d="M 930 490 L 930 740" fill="none" stroke="#B3261E" stroke-width="2" marker-end="url(#arrowRed)" />
+        <path d="M 930 810 L 930 1030" fill="none" stroke="#B3261E" stroke-width="2" marker-end="url(#arrowRed)" />
+        <path d="M 1020 1072 L 1130 1072 L 1130 175" fill="none" stroke="#1F7A4D" stroke-width="2" marker-end="url(#arrowGreen)" stroke-dasharray="4 4" />
+        <text x="1140" y="760" fill="#1F7A4D" font-size="10" font-weight="bold">Tindakan Fisik</text>
+
+
+        <!-- ========================================================================= -->
+        <!-- ALUR 3: FACTORY DAILY PULSE & B2B TRACKING (KOLOM KANAN: x = 1300 s/d 2100) -->
+        <!-- ========================================================================= -->
+        <rect x="1300" y="55" width="480" height="30" rx="5" fill="#EBF9F1" stroke="#1F7A4D" stroke-dasharray="3 3" />
+        <text x="1540" y="75" fill="#1F7A4D" font-size="12" font-weight="bold" text-anchor="middle">
+          KASUS 3: FACTORY DAILY PULSE & B2B MILESTONE
+        </text>
+
+        <!-- Event Start 3: Tutup Shift -->
+        <circle cx="1350" cy="140" r="18" fill="#2F5FA8" stroke="#1D3E70" stroke-width="3" />
+        <text x="1350" y="145" fill="#FFFFFF" font-size="12" font-weight="bold" text-anchor="middle">⏱</text>
+        <text x="1350" y="180" fill="#2F5FA8" font-size="11" font-weight="bold" text-anchor="middle">Tutup Shift 17:00</text>
+        <text x="1350" y="195" fill="#5A6872" font-size="10" text-anchor="middle">Agregasi 70 Mesin</text>
+
+        <!-- Task 8: Backend Summary Calculation -->
+        <rect x="1420" y="420" width="180" height="70" rx="8" fill="#FFFFFF" stroke="#2F5FA8" stroke-width="2" filter="url(#shadow)" />
+        <text x="1510" y="445" fill="#2F5FA8" font-size="12" font-weight="bold" text-anchor="middle">Hitung Factory Pulse</text>
+        <text x="1510" y="462" fill="#5A6872" font-size="10" text-anchor="middle">Utilisasi 68/70 Mesin (97%)</text>
+        <text x="1510" y="476" fill="#1F7A4D" font-size="9" font-weight="bold" text-anchor="middle">Pool Bonus: Rp 883.800</text>
+
+        <!-- Task 9: Telegram Route Dispatch -->
+        <rect x="1420" y="740" width="180" height="70" rx="8" fill="#EBF7FD" stroke="#0088CC" stroke-width="2" filter="url(#shadow)" />
+        <text x="1510" y="765" fill="#0088CC" font-size="12" font-weight="bold" text-anchor="middle">Dual-Target Push</text>
+        <text x="1510" y="782" fill="#5A6872" font-size="10" text-anchor="middle">1. Owner / Ka Ops (/pulse)</text>
+        <text x="1510" y="796" fill="#7A5BB0" font-size="9" font-weight="bold" text-anchor="middle">2. Klien B2B (/status)</text>
+
+        <!-- Receiver 1: Owner Daily Pulse -->
+        <rect x="1380" y="1030" width="160" height="85" rx="8" fill="#FFFFFF" stroke="#26325B" stroke-width="2" filter="url(#shadow)" />
+        <text x="1460" y="1055" fill="#26325B" font-size="12" font-weight="bold" text-anchor="middle">HP Owner / Ka. Ops</text>
+        <text x="1460" y="1072" fill="#5A6872" font-size="10" text-anchor="middle">Rekap 68/70 Mesin Aktif</text>
+        <text x="1460" y="1088" fill="#1F7A4D" font-size="10" font-weight="bold" text-anchor="middle">Bonus: Rp 294.600/org</text>
+        <text x="1460" y="1102" fill="#5A6872" font-size="9" text-anchor="middle">DP 50% Masuk</text>
+
+        <!-- Receiver 2: Klien B2B Progress -->
+        <rect x="1560" y="1030" width="160" height="85" rx="8" fill="#FFFFFF" stroke="#7A5BB0" stroke-width="2" filter="url(#shadow)" />
+        <text x="1640" y="1055" fill="#7A5BB0" font-size="12" font-weight="bold" text-anchor="middle">HP Klien Maklon B2B</text>
+        <text x="1640" y="1072" fill="#5A6872" font-size="10" text-anchor="middle">Progres: [80%] Selesai</text>
+        <text x="1640" y="1088" fill="#1F7A4D" font-size="10" font-weight="bold" text-anchor="middle">200 pcs Lolos QC</text>
+        <text x="1640" y="1102" fill="#5A6872" font-size="9" text-anchor="middle">Estimasi Kirim Tepat Waktu</text>
+
+        <!-- End Event 3 -->
+        <circle cx="1510" cy="1230" r="18" fill="#E6ECEE" stroke="#26325B" stroke-width="4" />
+        <text x="1510" y="1235" fill="#26325B" font-size="14" font-weight="bold" text-anchor="middle">■</text>
+        <text x="1510" y="1265" fill="#151A24" font-size="11" font-weight="bold" text-anchor="middle">Shift Selesai & Data Tersinkron</text>
+
+        <!-- Lines Flow 3 -->
+        <path d="M 1368 140 L 1510 140 L 1510 420" fill="none" stroke="#2F5FA8" stroke-width="2" marker-end="url(#arrow)" />
+        <path d="M 1510 490 L 1510 740" fill="none" stroke="#2F5FA8" stroke-width="2" marker-end="url(#arrow)" />
+        <path d="M 1480 810 L 1460 1030" fill="none" stroke="#26325B" stroke-width="2" marker-end="url(#arrow)" />
+        <path d="M 1540 810 L 1640 1030" fill="none" stroke="#7A5BB0" stroke-width="2" marker-end="url(#arrow)" />
+        <path d="M 1460 1115 L 1460 1170 L 1510 1170 L 1510 1212" fill="none" stroke="#26325B" stroke-width="2" marker-end="url(#arrow)" />
+        <path d="M 1640 1115 L 1640 1170 L 1510 1170" fill="none" stroke="#7A5BB0" stroke-width="2" />
+
+        <!-- ARCHITECTURAL HIGHLIGHT BOX -->
+        <rect x="1800" y="420" width="320" height="400" rx="8" fill="#151A24" stroke="#E8E36B" stroke-width="2" filter="url(#shadow)" />
+        <rect x="1800" y="420" width="320" height="36" rx="8" fill="#26325B" />
+        <text x="1960" y="444" fill="#E8E36B" font-size="13" font-weight="bold" text-anchor="middle">
+          KEY BUSINESS RULES (LUKLA)
+        </text>
+        <text x="1820" y="485" fill="#FFFFFF" font-size="11" font-weight="bold">1. Zero-Cost Pocket Bridge:</text>
+        <text x="1820" y="505" fill="#A3B8CC" font-size="10">• Biaya operasional Rp 0 melalui API.</text>
+        <text x="1820" y="535" fill="#FFFFFF" font-size="11" font-weight="bold">2. Penjahit Tidak Bawa HP:</text>
+        <text x="1820" y="555" fill="#A3B8CC" font-size="10">• Operator fokus di Touch Terminal.</text>
+        <text x="1820" y="585" fill="#FFFFFF" font-size="11" font-weight="bold">3. Anti-IDOR Data Isolation:</text>
+        <text x="1820" y="605" fill="#A3B8CC" font-size="10">• Klien Maklon hanya melihat pesan</text>
+        <text x="1820" y="620" fill="#A3B8CC" font-size="10">  pesanan miliknya sendiri.</text>
+        <text x="1820" y="650" fill="#FFFFFF" font-size="11" font-weight="bold">4. 1-Click Interactive Approval:</text>
+        <text x="1820" y="670" fill="#A3B8CC" font-size="10">• Owner setujui pesanan tanpa login web.</text>
+        <text x="1820" y="700" fill="#FFFFFF" font-size="11" font-weight="bold">5. Emergency Alarm (&lt; 1 Detik):</text>
+        <text x="1820" y="720" fill="#A3B8CC" font-size="10">• Cegah insiden kain tertukar di cutting.</text>
+
+        <rect x="1820" y="750" width="280" height="46" rx="6" fill="#1F7A4D" />
+        <text x="1960" y="772" fill="#FFFFFF" font-size="11" font-weight="bold" text-anchor="middle">STATUS: TESTED & LIVE VERIFIED</text>
+        <text x="1960" y="787" fill="#E8F1F5" font-size="9" text-anchor="middle">Token: @LuklaManufactur_Bot</text>
+      </svg>
+    </div>
+
+    <!-- LEGEND -->
+    <div class="legend">
+      <span style="font-weight: bold; color: var(--kapur);">Legenda BPMN:</span>
+      <div class="legend-item">
+        <div class="legend-dot" style="background: #1F7A4D;"></div>
+        <span>Start / Approved Event</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-dot" style="background: #B3261E;"></div>
+        <span>Emergency Alert (FR-6.2)</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-dot" style="background: #E8E36B;"></div>
+        <span>Gateway Pilihan Keputusan</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-dot" style="background: #0088CC;"></div>
+        <span>Telegram Cloud API</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-dot" style="background: #7A5BB0;"></div>
+        <span>Portal Klien B2B</span>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let scale = 0.75;
+    let translateX = 40;
+    let translateY = 20;
+    let isDragging = false;
+    let startX = 0;
+    let startY = 0;
+
+    const container = document.getElementById("svgContainer");
+    const viewport = document.getElementById("viewport");
+
+    function updateTransform() {
+      container.style.transform = `translate(${translateX}px, ${translateY}px) scale(${scale})`;
+    }
+
+    function zoomIn() {
+      scale = Math.min(scale * 1.2, 2.5);
+      updateTransform();
+    }
+
+    function zoomOut() {
+      scale = Math.max(scale / 1.2, 0.3);
+      updateTransform();
+    }
+
+    function resetZoom() {
+      scale = 0.75;
+      translateX = 40;
+      translateY = 20;
+      updateTransform();
+    }
+
+    viewport.addEventListener("mousedown", (e) => {
+      isDragging = true;
+      startX = e.clientX - translateX;
+      startY = e.clientY - translateY;
+    });
+
+    window.addEventListener("mousemove", (e) => {
+      if (!isDragging) return;
+      translateX = e.clientX - startX;
+      translateY = e.clientY - startY;
+      updateTransform();
+    });
+
+    window.addEventListener("mouseup", () => {
+      isDragging = false;
+    });
+
+    viewport.addEventListener("wheel", (e) => {
+      e.preventDefault();
+      const zoomFactor = e.deltaY < 0 ? 1.1 : 0.9;
+      scale = Math.min(Math.max(scale * zoomFactor, 0.3), 2.5);
+      updateTransform();
+    }, { passive: false });
+
+    // Initial render
+    updateTransform();
+  </script>
+</body>
+</html>
