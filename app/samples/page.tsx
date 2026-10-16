@@ -191,6 +191,8 @@ export default function SamplesPage() {
       article: activeSample.articleName,
       targetQty: Number(targetQtyInput) || 500,
       completedQty: 0,
+      clearedQc: 0,
+      clientType: activeSample.clientCode === "SNOHUND" ? "internal" : "b2b",
       sellingPricePerUnit: Number(sellingPriceInput) || 245000,
       inheritedVersion: "v2 (Approved)",
       inheritedSmv: "18m 30s",

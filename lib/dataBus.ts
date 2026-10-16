@@ -2,22 +2,42 @@
 // Real-time Event & State Bus for Lukla Operations Engine
 // Connects Phase 1 (Samples & Catalog) -> Phase 2 (Dashboard Approval) -> Phase 3 (Warehouse, Raw Materials, POs, Cutting, Finished Goods) -> Phase 4 (Production) -> Phase 5 (QC Pass/Repair) -> Phase 6 (Payroll & PPN 11% Invoices)
 
+import { Role } from "./types";
+
 export interface MassOrder {
   id: string;
   orderNumber: string;
   clientCode: string;
   clientName: string;
+  clientType?: "internal" | "b2b";
   article: string;
   scheme: "FULL_PACKAGE" | "SEMI_CMT" | "CMT";
   targetQty: number;
   completedQty?: number;
+  clearedQc?: number;
   sellingPricePerUnit?: number;
   productCatalogId?: string;
   inheritedVersion: string;
   inheritedSmv: string;
   inheritedFabric: string;
-  status: "PENDING_OWNER_APPROVAL" | "APPROVED" | "DONE" | "REJECTED";
+  status: "PENDING_OWNER_APPROVAL" | "APPROVED" | "IN_PRODUCTION" | "QC" | "DONE" | "REJECTED";
   rejectionReason?: string;
+  notes?: string;
+  createdAt: string;
+  approvedAt?: string;
+  rejectedAt?: string;
+}
+
+export interface ClientRecord {
+  id: string;
+  code: string;
+  name: string;
+  type: "internal" | "b2b";
+  contactPerson: string;
+  contactPhone: string;
+  email: string;
+  address: string;
+  activeOrdersCount: number;
   createdAt: string;
 }
 
@@ -75,6 +95,7 @@ export interface FinishedGoodRecord {
   passedQcAt: string;
   storedAt?: string;
   storedBy?: string;
+  rackLocation?: string;
 }
 
 export interface IssuedInvoiceRecord {
@@ -108,6 +129,43 @@ export interface CuttingBatch {
   status: string;
 }
 
+export interface LineAllocationRecord {
+  id: string;
+  workerName: string;
+  machineNumber: number;
+  lineName: string;
+  orderNumber: string;
+  articleName: string;
+  componentName: string;
+  producedUnits: number;
+  targetQuantity: number;
+  status: "ACTIVE" | "TARGET_REACHED";
+  allocatedAt: string;
+}
+
+export interface UnverifiedOutputRecord {
+  id: string;
+  lineName: string;
+  workerName: string;
+  orderNumber: string;
+  articleName: string;
+  componentName: string;
+  quantity: number;
+  periodStart: string;
+  status: "PENDING" | "VERIFIED";
+}
+
+export interface RateCardRecord {
+  id: string;
+  clientCode: string;
+  clientName: string;
+  articleName: string;
+  componentName: string;
+  rateSew: number;
+  rateCut: number;
+  effectiveFrom: string;
+}
+
 export interface QcQueueItem {
   serial: string;
   orderNumber: string;
@@ -118,6 +176,15 @@ export interface QcQueueItem {
   isReinspection: boolean;
   repairNote?: string;
   defectCategory?: string;
+}
+
+export interface UserAccountRecord {
+  id: string;
+  name: string;
+  email: string;
+  role: Role;
+  isActive: boolean;
+  createdAt: string;
 }
 
 export interface InventoryItemCustom {
@@ -135,36 +202,146 @@ export interface InventoryItemCustom {
 }
 
 const STORAGE_KEYS = {
-  PENDING_ORDERS: "lukla_pending_orders",
-  ACTIVE_ORDERS: "lukla_active_orders",
+  ALL_ORDERS: "lukla_all_orders",
+  CLIENTS: "lukla_clients",
   PRODUCT_CATALOG: "lukla_product_catalog",
   RAW_MATERIALS: "lukla_raw_materials",
   PURCHASE_ORDERS: "lukla_purchase_orders",
   FINISHED_GOODS: "lukla_finished_goods",
   ISSUED_INVOICES: "lukla_issued_invoices",
   CUTTING_BATCHES: "lukla_cutting_batches",
+  LINE_ALLOCATIONS: "lukla_line_allocations",
+  UNVERIFIED_OUTPUTS: "lukla_unverified_outputs",
+  RATE_CARDS: "lukla_rate_cards",
   QC_QUEUE: "lukla_qc_queue",
   QC_POOL: "lukla_qc_pool",
   CUSTOM_INVENTORY: "lukla_custom_inventory",
+  USERS: "lukla_users",
   SYNC_EVENT: "lukla_data_sync_event",
 };
 
-// Default seed data
-const DEFAULT_PENDING_ORDERS: MassOrder[] = [
+// ── Seed Data ──────────────────────────────────────────────────────────────────
+
+const DEFAULT_CLIENTS: ClientRecord[] = [
   {
-    id: "ord-seed-004",
+    id: "cli-001",
+    code: "SNOHUND",
+    name: "Snøhund Alpine Wear",
+    type: "internal",
+    contactPerson: "Dedi Suhendar (Brand Manager)",
+    contactPhone: "0812-3456-7890",
+    email: "dedi@snohund.id",
+    address: "Jl. Raya Ciwidey Km 24, Kabupaten Bandung",
+    activeOrdersCount: 2,
+    createdAt: "01 Jan 2026",
+  },
+  {
+    id: "cli-002",
+    code: "KLIEN_A",
+    name: "PT Bandung Apparel",
+    type: "b2b",
+    contactPerson: "Hendra Wijaya (Sourcing Director)",
+    contactPhone: "0811-2233-4455",
+    email: "hendra@bdgapparel.co.id",
+    address: "Kawasan Industri Batununggal No. 402, Bandung",
+    activeOrdersCount: 1,
+    createdAt: "15 Jan 2026",
+  },
+  {
+    id: "cli-003",
+    code: "KLIEN_B",
+    name: "CV Priangan Outdoor",
+    type: "b2b",
+    contactPerson: "Bambang Sutrisno (Owner)",
+    contactPhone: "0813-8877-6655",
+    email: "bambang@prianganoutdoor.com",
+    address: "Jl. Soreang Indah No. 88, Soreang, Bandung",
+    activeOrdersCount: 1,
+    createdAt: "02 Feb 2026",
+  },
+];
+
+const DEFAULT_ORDERS: MassOrder[] = [
+  {
+    id: "ord-001",
+    orderNumber: "ORD-2026-001",
+    clientCode: "SNOHUND",
+    clientName: "Snøhund Alpine Wear",
+    clientType: "internal",
+    article: "Snøhund Alpine Tactical Backpack 35L",
+    scheme: "FULL_PACKAGE",
+    targetQty: 300,
+    completedQty: 300,
+    clearedQc: 300,
+    sellingPricePerUnit: 245000,
+    productCatalogId: "cat-001",
+    inheritedVersion: "v1 (Approved)",
+    inheritedSmv: "18m 30s",
+    inheritedFabric: "1.45 m Cordura 1000D / pcs",
+    status: "DONE",
+    notes: "Batch perdana pesanan internal Snøhund — produksi dan invoice tuntas.",
+    createdAt: "10 Okt 2026",
+    approvedAt: "11 Okt 2026",
+  },
+  {
+    id: "ord-002",
+    orderNumber: "ORD-2026-002",
+    clientCode: "KLIEN_A",
+    clientName: "PT Bandung Apparel",
+    clientType: "b2b",
+    article: "Urban Commuter Roll-Top Backpack 25L",
+    scheme: "SEMI_CMT",
+    targetQty: 200,
+    completedQty: 100,
+    clearedQc: 100,
+    sellingPricePerUnit: 165000,
+    productCatalogId: "cat-002",
+    inheritedVersion: "v2 (Approved)",
+    inheritedSmv: "15m 20s",
+    inheritedFabric: "1.25 m Ripstop Nylon / pcs",
+    status: "IN_PRODUCTION",
+    notes: "Skema Semi-CMT: Kain titipan klien, hardware & busa disediakan Lukla.",
+    createdAt: "12 Okt 2026",
+    approvedAt: "13 Okt 2026",
+  },
+  {
+    id: "ord-003",
+    orderNumber: "ORD-2026-003",
+    clientCode: "KLIEN_B",
+    clientName: "CV Priangan Outdoor",
+    clientType: "b2b",
+    article: "Priangan Daypack Lightweight 20L",
+    scheme: "CMT",
+    targetQty: 150,
+    completedQty: 0,
+    clearedQc: 0,
+    sellingPricePerUnit: 85000,
+    inheritedVersion: "v1 (Approved)",
+    inheritedSmv: "12m 10s",
+    inheritedFabric: "0.95 m Ripstop Diamond / pcs",
+    status: "APPROVED",
+    notes: "Skema CMT Murni: PO Komitmen bahan baku diterbitkan ke Klien (Rule #5).",
+    createdAt: "13 Okt 2026",
+    approvedAt: "14 Okt 2026",
+  },
+  {
+    id: "ord-004",
     orderNumber: "ORD-2026-004",
     clientCode: "SNOHUND",
     clientName: "Snøhund Alpine Wear",
-    article: "Snøhund Alpine Tactical Backpack 35L",
+    clientType: "internal",
+    article: "Snøhund Alpine Tactical Backpack 35L v2",
     scheme: "FULL_PACKAGE",
     targetQty: 500,
-    completedQty: 0,
+    completedQty: 45,
+    clearedQc: 35,
     sellingPricePerUnit: 245000,
+    productCatalogId: "cat-001",
     inheritedVersion: "v2 (Approved)",
     inheritedSmv: "18m 30s",
     inheritedFabric: "1.45 m Cordura 1000D / pcs",
     status: "PENDING_OWNER_APPROVAL",
+    notes: "Hasil konversi versi sampel disetujui (Approved v2) oleh Tim Sampler — menunggu aktivasi Owner.",
     createdAt: "15 Okt 2026, 14:00",
   },
 ];
@@ -313,6 +490,7 @@ const DEFAULT_FINISHED_GOODS: FinishedGoodRecord[] = [
     passedQcAt: "15 Okt 2026, 09:15",
     storedAt: "15 Okt 2026, 10:00",
     storedBy: "Kang Asep (Gudang)",
+    rackLocation: "RAK-FG-A1",
   },
   {
     id: "fg-002",
@@ -325,6 +503,7 @@ const DEFAULT_FINISHED_GOODS: FinishedGoodRecord[] = [
     passedQcAt: "15 Okt 2026, 09:20",
     storedAt: "15 Okt 2026, 10:00",
     storedBy: "Kang Asep (Gudang)",
+    rackLocation: "RAK-FG-A1",
   },
   {
     id: "fg-003",
@@ -356,6 +535,160 @@ const DEFAULT_ISSUED_INVOICES: IssuedInvoiceRecord[] = [
     fulfillmentMethod: "SHIPPING",
     paymentStatus: "PAID",
     issuedAt: "14 Okt 2026",
+  },
+];
+
+const DEFAULT_RATE_CARDS: RateCardRecord[] = [
+  {
+    id: "rc-001",
+    clientCode: "SNOHUND",
+    clientName: "Snøhund Alpine Wear",
+    articleName: "Snøhund Alpine Tactical Backpack 35L",
+    componentName: "Panel Depan & Saku Organizer",
+    rateSew: 1500,
+    rateCut: 400,
+    effectiveFrom: "01 Jan 2026",
+  },
+  {
+    id: "rc-002",
+    clientCode: "SNOHUND",
+    clientName: "Snøhund Alpine Wear",
+    articleName: "Snøhund Alpine Tactical Backpack 35L",
+    componentName: "Panel Belakang & Busa Ergonomis",
+    rateSew: 1800,
+    rateCut: 450,
+    effectiveFrom: "01 Jan 2026",
+  },
+  {
+    id: "rc-003",
+    clientCode: "SNOHUND",
+    clientName: "Snøhund Alpine Wear",
+    articleName: "Snøhund Alpine Tactical Backpack 35L",
+    componentName: "Tali Bahu & Sternum Strap",
+    rateSew: 1200,
+    rateCut: 350,
+    effectiveFrom: "01 Jan 2026",
+  },
+  {
+    id: "rc-004",
+    clientCode: "SNOHUND",
+    clientName: "Snøhund Alpine Wear",
+    articleName: "Snøhund Alpine Tactical Backpack 35L",
+    componentName: "Perakitan Tas Utuh (Assembly)",
+    rateSew: 3500,
+    rateCut: 0,
+    effectiveFrom: "01 Jan 2026",
+  },
+  {
+    id: "rc-005",
+    clientCode: "KLIEN_A",
+    clientName: "PT Bandung Apparel",
+    articleName: "Urban Commuter Roll-Top Backpack 25L",
+    componentName: "Roll-Top Main Body",
+    rateSew: 1400,
+    rateCut: 350,
+    effectiveFrom: "15 Jan 2026",
+  },
+  {
+    id: "rc-006",
+    clientCode: "KLIEN_A",
+    clientName: "PT Bandung Apparel",
+    articleName: "Urban Commuter Roll-Top Backpack 25L",
+    componentName: "Laptop Sleeve Foam Padding",
+    rateSew: 1100,
+    rateCut: 300,
+    effectiveFrom: "15 Jan 2026",
+  },
+];
+
+const DEFAULT_LINE_ALLOCATIONS: LineAllocationRecord[] = [
+  {
+    id: "alloc-001",
+    workerName: "Siti Rahma (Penjahit #01)",
+    machineNumber: 1,
+    lineName: "Lini 1 (Sewing Body)",
+    orderNumber: "ORD-2026-004",
+    articleName: "Snøhund Alpine Tactical Backpack 35L",
+    componentName: "Panel Depan & Saku Organizer",
+    producedUnits: 42,
+    targetQuantity: 500,
+    status: "ACTIVE",
+    allocatedAt: "15 Okt 2026, 08:00",
+  },
+  {
+    id: "alloc-002",
+    workerName: "Rina Marlina (Penjahit #02)",
+    machineNumber: 2,
+    lineName: "Lini 1 (Sewing Body)",
+    orderNumber: "ORD-2026-004",
+    articleName: "Snøhund Alpine Tactical Backpack 35L",
+    componentName: "Panel Belakang & Busa Ergonomis",
+    producedUnits: 38,
+    targetQuantity: 500,
+    status: "ACTIVE",
+    allocatedAt: "15 Okt 2026, 08:00",
+  },
+  {
+    id: "alloc-003",
+    workerName: "Agus Susanto (Penjahit #08)",
+    machineNumber: 8,
+    lineName: "Lini 2 (Straps & Webbing)",
+    orderNumber: "ORD-2026-004",
+    articleName: "Snøhund Alpine Tactical Backpack 35L",
+    componentName: "Tali Bahu & Sternum Strap",
+    producedUnits: 45,
+    targetQuantity: 500,
+    status: "ACTIVE",
+    allocatedAt: "15 Okt 2026, 08:00",
+  },
+  {
+    id: "alloc-004",
+    workerName: "Budi Hartono (Penjahit #22)",
+    machineNumber: 22,
+    lineName: "Lini 3 (Assembly Meja)",
+    orderNumber: "ORD-2026-004",
+    articleName: "Snøhund Alpine Tactical Backpack 35L",
+    componentName: "Perakitan Tas Utuh (Assembly)",
+    producedUnits: 35,
+    targetQuantity: 500,
+    status: "ACTIVE",
+    allocatedAt: "15 Okt 2026, 08:00",
+  },
+];
+
+const DEFAULT_UNVERIFIED_OUTPUTS: UnverifiedOutputRecord[] = [
+  {
+    id: "unv-001",
+    lineName: "Lini 1 (Sewing Body)",
+    workerName: "Siti Rahma (Penjahit #01)",
+    orderNumber: "ORD-2026-004",
+    articleName: "Snøhund Alpine Tactical Backpack 35L",
+    componentName: "Panel Depan & Saku Organizer",
+    quantity: 6,
+    periodStart: "10:00 - 10:30 WIB",
+    status: "PENDING",
+  },
+  {
+    id: "unv-002",
+    lineName: "Lini 1 (Sewing Body)",
+    workerName: "Rina Marlina (Penjahit #02)",
+    orderNumber: "ORD-2026-004",
+    articleName: "Snøhund Alpine Tactical Backpack 35L",
+    componentName: "Panel Belakang & Busa Ergonomis",
+    quantity: 5,
+    periodStart: "10:00 - 10:30 WIB",
+    status: "PENDING",
+  },
+  {
+    id: "unv-003",
+    lineName: "Lini 2 (Straps & Webbing)",
+    workerName: "Agus Susanto (Penjahit #08)",
+    orderNumber: "ORD-2026-004",
+    articleName: "Snøhund Alpine Tactical Backpack 35L",
+    componentName: "Tali Bahu & Sternum Strap",
+    quantity: 7,
+    periodStart: "10:00 - 10:30 WIB",
+    status: "PENDING",
   },
 ];
 
@@ -433,6 +766,20 @@ const DEFAULT_QC_QUEUE: QcQueueItem[] = [
   },
 ];
 
+const DEFAULT_USERS: UserAccountRecord[] = [
+  { id: "usr-01", name: "Pak Dedi", email: "dedi@lukla.id", role: "OWNER", isActive: true, createdAt: "01 Jan 2026" },
+  { id: "usr-02", name: "Mbak Lina", email: "lina@lukla.id", role: "SAMPLE_TEAM", isActive: true, createdAt: "05 Jan 2026" },
+  { id: "usr-03", name: "Kang Asep", email: "asep@lukla.id", role: "WAREHOUSE", isActive: true, createdAt: "05 Jan 2026" },
+  { id: "usr-04", name: "Pak Jajang", email: "jajang@lukla.id", role: "PRODUCTION_HEAD_MANDOR", isActive: true, createdAt: "08 Jan 2026" },
+  { id: "usr-05", name: "Siti Rahma", email: "siti@lukla.id", role: "TAILOR_OPERATOR", isActive: true, createdAt: "10 Jan 2026" },
+  { id: "usr-06", name: "Rina Marlina", email: "rina@lukla.id", role: "TAILOR_ASSEMBLY", isActive: true, createdAt: "10 Jan 2026" },
+  { id: "usr-07", name: "Teh Reni", email: "reni@lukla.id", role: "QC_INSPECTOR", isActive: true, createdAt: "12 Jan 2026" },
+  { id: "usr-08", name: "Bu Sari", email: "sari@lukla.id", role: "FINANCE_PAYROLL", isActive: true, createdAt: "12 Jan 2026" },
+  { id: "usr-09", name: "Pak Hendra (Klien Maklon A)", email: "hendra@bdgapparel.co.id", role: "B2B_CLIENT", isActive: true, createdAt: "15 Jan 2026" },
+];
+
+// ── Event Bus Dispatcher ───────────────────────────────────────────────────────
+
 export function emitDataBusSync(eventKey: string) {
   if (typeof window === "undefined") return;
   try {
@@ -441,55 +788,74 @@ export function emitDataBusSync(eventKey: string) {
   } catch {}
 }
 
-// 1. Pending & Active Mass Orders
-export function getPendingMassOrders(): MassOrder[] {
-  if (typeof window === "undefined") return DEFAULT_PENDING_ORDERS;
+// ── Orders API ────────────────────────────────────────────────────────────────
+
+export function getAllMassOrders(): MassOrder[] {
+  if (typeof window === "undefined") return DEFAULT_ORDERS;
   try {
-    const raw = localStorage.getItem(STORAGE_KEYS.PENDING_ORDERS);
+    const raw = localStorage.getItem(STORAGE_KEYS.ALL_ORDERS);
     if (!raw) {
-      localStorage.setItem(STORAGE_KEYS.PENDING_ORDERS, JSON.stringify(DEFAULT_PENDING_ORDERS));
-      return DEFAULT_PENDING_ORDERS;
+      localStorage.setItem(STORAGE_KEYS.ALL_ORDERS, JSON.stringify(DEFAULT_ORDERS));
+      return DEFAULT_ORDERS;
     }
     return JSON.parse(raw);
   } catch {
-    return DEFAULT_PENDING_ORDERS;
+    return DEFAULT_ORDERS;
   }
+}
+
+export function getPendingMassOrders(): MassOrder[] {
+  return getAllMassOrders().filter((o) => o.status === "PENDING_OWNER_APPROVAL");
+}
+
+export function getApprovedMassOrders(): MassOrder[] {
+  return getAllMassOrders().filter((o) => o.status !== "PENDING_OWNER_APPROVAL" && o.status !== "REJECTED");
+}
+
+export function getOrderByIdOrRef(idOrRef: string): MassOrder | undefined {
+  const all = getAllMassOrders();
+  return all.find((o) => o.id === idOrRef || o.orderNumber === idOrRef);
 }
 
 export function savePendingMassOrder(order: MassOrder) {
   if (typeof window === "undefined") return;
-  const current = getPendingMassOrders();
+  const current = getAllMassOrders();
   const filtered = current.filter((o) => o.orderNumber !== order.orderNumber);
   const updated = [order, ...filtered];
-  localStorage.setItem(STORAGE_KEYS.PENDING_ORDERS, JSON.stringify(updated));
-  emitDataBusSync("PENDING_ORDERS_UPDATED");
+  localStorage.setItem(STORAGE_KEYS.ALL_ORDERS, JSON.stringify(updated));
+  emitDataBusSync("ORDER_CREATED");
 }
 
-export function getApprovedMassOrders(): MassOrder[] {
-  if (typeof window === "undefined") return [];
-  try {
-    const raw = localStorage.getItem(STORAGE_KEYS.ACTIVE_ORDERS);
-    return raw ? JSON.parse(raw) : [];
-  } catch {
-    return [];
-  }
+export function createMassOrder(newOrder: Omit<MassOrder, "id" | "orderNumber" | "completedQty" | "clearedQc" | "status" | "createdAt">): MassOrder {
+  const current = getAllMassOrders();
+  const nextSeq = current.length + 1;
+  const orderNumber = `ORD-2026-${String(nextSeq).padStart(3, "0")}`;
+  const order: MassOrder = {
+    ...newOrder,
+    id: `ord-${Date.now()}`,
+    orderNumber,
+    completedQty: 0,
+    clearedQc: 0,
+    status: "PENDING_OWNER_APPROVAL",
+    createdAt: new Date().toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }),
+  };
+  savePendingMassOrder(order);
+  return order;
 }
 
 export function approveMassOrder(orderNumber: string): MassOrder | null {
   if (typeof window === "undefined") return null;
-  const pendings = getPendingMassOrders();
-  const target = pendings.find((o) => o.orderNumber === orderNumber);
+  const all = getAllMassOrders();
+  const target = all.find((o) => o.orderNumber === orderNumber);
   if (!target) return null;
 
   target.status = "APPROVED";
-  const updatedPendings = pendings.map((o) => (o.orderNumber === orderNumber ? target : o));
-  localStorage.setItem(STORAGE_KEYS.PENDING_ORDERS, JSON.stringify(updatedPendings));
+  target.approvedAt = new Date().toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" });
+  
+  const updated = all.map((o) => (o.orderNumber === orderNumber ? target : o));
+  localStorage.setItem(STORAGE_KEYS.ALL_ORDERS, JSON.stringify(updated));
 
-  const actives = getApprovedMassOrders();
-  const filteredActives = actives.filter((o) => o.orderNumber !== orderNumber);
-  localStorage.setItem(STORAGE_KEYS.ACTIVE_ORDERS, JSON.stringify([target, ...filteredActives]));
-
-  // Graduate to Product Catalog automatically (adopted from TestLukia-main approveOrderAction)
+  // Graduate to Product Catalog automatically (Adopted from TestLukia-main approveOrderAction)
   const catalog = getProductCatalog();
   const existsInCatalog = catalog.some(
     (c) => c.articleName.toLowerCase() === target.article.toLowerCase() && c.clientCode === target.clientCode
@@ -503,7 +869,7 @@ export function approveMassOrder(orderNumber: string): MassOrder | null {
       clientCode: target.clientCode,
       clientName: target.clientName,
       defaultScheme: target.scheme,
-      defaultSellingPricePerUnit: target.sellingPricePerUnit || 225000,
+      defaultSellingPricePerUnit: target.sellingPricePerUnit || 245000,
       componentCount: 5,
       smvSummary: target.inheritedSmv || "18m 30s",
       bomSummary: target.inheritedFabric || "1.45 m Cordura 1000D / pcs",
@@ -513,31 +879,34 @@ export function approveMassOrder(orderNumber: string): MassOrder | null {
     localStorage.setItem(STORAGE_KEYS.PRODUCT_CATALOG, JSON.stringify([newCatItem, ...catalog]));
   }
 
-  // Auto-generate PO or Client Commitment from BOM (adopted from TestLukia-main + Locked Rule #5)
+  // Auto-generate PO or Client Commitment from BOM (Rule #5 Skema CMT)
   const pos = getPurchaseOrders();
-  const newPo: PurchaseOrderRecord = {
-    id: `po-${Date.now()}`,
-    poNumber:
-      target.scheme === "CMT"
-        ? `CMT-COM-2026-${Math.floor(100 + Math.random() * 900)}`
-        : `PO-SUP-2026-${Math.floor(100 + Math.random() * 900)}`,
-    docType: target.scheme === "CMT" ? "CLIENT_COMMITMENT" : "SUPPLIER_PO",
-    orderNumber: target.orderNumber,
-    clientName: target.clientName,
-    supplierOrClient:
-      target.scheme === "CMT"
-        ? `${target.clientName} (Komitmen Bahan Klien CMT)`
-        : "PT Tekstil Nusantara (Supplier Resmi Lukla)",
-    rawMaterialSku: "RM-0001",
-    itemName: target.inheritedFabric || `Paket Bahan Baku ${target.article}`,
-    quantity: Math.round(target.targetQty * 1.45),
-    unit: "Meter",
-    status: "PENDING",
-    notes: `Auto-generated saat persetujuan Owner untuk ${target.orderNumber} (${target.targetQty} unit)`,
-    createdBy: "Sistem Otomatis (BOM)",
-    createdAt: new Date().toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" }),
-  };
-  localStorage.setItem(STORAGE_KEYS.PURCHASE_ORDERS, JSON.stringify([newPo, ...pos]));
+  const existsPo = pos.some((p) => p.orderNumber === target.orderNumber);
+  if (!existsPo) {
+    const newPo: PurchaseOrderRecord = {
+      id: `po-${Date.now()}`,
+      poNumber:
+        target.scheme === "CMT"
+          ? `CMT-COM-2026-${Math.floor(100 + Math.random() * 900)}`
+          : `PO-SUP-2026-${Math.floor(100 + Math.random() * 900)}`,
+      docType: target.scheme === "CMT" ? "CLIENT_COMMITMENT" : "SUPPLIER_PO",
+      orderNumber: target.orderNumber,
+      clientName: target.clientName,
+      supplierOrClient:
+        target.scheme === "CMT"
+          ? `${target.clientName} (Komitmen Bahan Klien CMT)`
+          : "PT Tekstil Nusantara (Supplier Resmi Lukla)",
+      rawMaterialSku: "RM-0001",
+      itemName: target.inheritedFabric || `Paket Bahan Baku ${target.article}`,
+      quantity: Math.round(target.targetQty * 1.45),
+      unit: "Meter",
+      status: "PENDING",
+      notes: `Auto-generated saat persetujuan Owner untuk ${target.orderNumber} (${target.targetQty} unit)`,
+      createdBy: "Sistem Otomatis (BOM)",
+      createdAt: new Date().toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" }),
+    };
+    localStorage.setItem(STORAGE_KEYS.PURCHASE_ORDERS, JSON.stringify([newPo, ...pos]));
+  }
 
   emitDataBusSync("ORDER_APPROVED");
   return target;
@@ -545,17 +914,58 @@ export function approveMassOrder(orderNumber: string): MassOrder | null {
 
 export function rejectMassOrder(orderNumber: string, reason?: string) {
   if (typeof window === "undefined") return;
-  const pendings = getPendingMassOrders();
-  const updated = pendings.map((o) =>
+  const all = getAllMassOrders();
+  const updated = all.map((o) =>
     o.orderNumber === orderNumber
-      ? { ...o, status: "REJECTED" as const, rejectionReason: reason || "Spesifikasi atau harga belum sesuai" }
+      ? {
+          ...o,
+          status: "REJECTED" as const,
+          rejectionReason: reason || "Spesifikasi atau harga belum disetujui",
+          rejectedAt: new Date().toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" }),
+        }
       : o
   );
-  localStorage.setItem(STORAGE_KEYS.PENDING_ORDERS, JSON.stringify(updated));
+  localStorage.setItem(STORAGE_KEYS.ALL_ORDERS, JSON.stringify(updated));
   emitDataBusSync("ORDER_REJECTED");
 }
 
-// 1B. Product Catalog & Re-Order (Adopted from TestLukia-main)
+export function markMassOrderDone(orderNumber: string) {
+  if (typeof window === "undefined") return;
+  const all = getAllMassOrders();
+  const updated = all.map((o) =>
+    o.orderNumber === orderNumber ? { ...o, status: "DONE" as const } : o
+  );
+  localStorage.setItem(STORAGE_KEYS.ALL_ORDERS, JSON.stringify(updated));
+  emitDataBusSync("ORDER_DONE");
+}
+
+// ── Clients API ───────────────────────────────────────────────────────────────
+
+export function getClients(): ClientRecord[] {
+  if (typeof window === "undefined") return DEFAULT_CLIENTS;
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.CLIENTS);
+    if (!raw) {
+      localStorage.setItem(STORAGE_KEYS.CLIENTS, JSON.stringify(DEFAULT_CLIENTS));
+      return DEFAULT_CLIENTS;
+    }
+    return JSON.parse(raw);
+  } catch {
+    return DEFAULT_CLIENTS;
+  }
+}
+
+export function saveClient(client: ClientRecord) {
+  if (typeof window === "undefined") return;
+  const current = getClients();
+  const filtered = current.filter((c) => c.code !== client.code && c.id !== client.id);
+  const updated = [client, ...filtered];
+  localStorage.setItem(STORAGE_KEYS.CLIENTS, JSON.stringify(updated));
+  emitDataBusSync("CLIENT_SAVED");
+}
+
+// ── Product Catalog API ───────────────────────────────────────────────────────
+
 export function getProductCatalog(): ProductCatalogItem[] {
   if (typeof window === "undefined") return DEFAULT_PRODUCT_CATALOG;
   try {
@@ -570,7 +980,16 @@ export function getProductCatalog(): ProductCatalogItem[] {
   }
 }
 
-// 1C. Raw Material Catalog & Purchase Orders (Adopted from TestLukia-main)
+export function addProductCatalogItem(item: ProductCatalogItem) {
+  if (typeof window === "undefined") return;
+  const current = getProductCatalog();
+  const updated = [item, ...current];
+  localStorage.setItem(STORAGE_KEYS.PRODUCT_CATALOG, JSON.stringify(updated));
+  emitDataBusSync("CATALOG_UPDATED");
+}
+
+// ── Raw Materials & POs API ───────────────────────────────────────────────────
+
 export function getRawMaterialCatalog(): RawMaterialMaster[] {
   if (typeof window === "undefined") return DEFAULT_RAW_MATERIALS;
   try {
@@ -583,6 +1002,14 @@ export function getRawMaterialCatalog(): RawMaterialMaster[] {
   } catch {
     return DEFAULT_RAW_MATERIALS;
   }
+}
+
+export function addRawMaterial(material: RawMaterialMaster) {
+  if (typeof window === "undefined") return;
+  const current = getRawMaterialCatalog();
+  const updated = [material, ...current];
+  localStorage.setItem(STORAGE_KEYS.RAW_MATERIALS, JSON.stringify(updated));
+  emitDataBusSync("RAW_MATERIAL_ADDED");
 }
 
 export function getPurchaseOrders(): PurchaseOrderRecord[] {
@@ -616,7 +1043,8 @@ export function reviewPurchaseOrder(poId: string, decision: "APPROVED" | "REJECT
   emitDataBusSync("PO_REVIEWED");
 }
 
-// 1D. Finished Goods Warehouse Intake (Adopted from TestLukia-main /warehouse/finished)
+// ── Finished Goods Warehouse Intake API ───────────────────────────────────────
+
 export function getFinishedGoods(): FinishedGoodRecord[] {
   if (typeof window === "undefined") return DEFAULT_FINISHED_GOODS;
   try {
@@ -641,33 +1069,34 @@ export function addFinishedGoodReady(record: FinishedGoodRecord) {
   }
 }
 
-export function receiveFinishedGoodToWarehouse(serialNumber: string, storedBy: string = "Kang Asep (Gudang)") {
+export function receiveFinishedGoodToWarehouse(serialNumber: string, storedBy: string = "Kang Asep (Gudang)", rackLocation: string = "RAK-FG-A1") {
   if (typeof window === "undefined") return;
   const current = getFinishedGoods();
   const nowStr = new Date().toLocaleString("id-ID", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" });
   const updated = current.map((fg) =>
     fg.serialNumber === serialNumber
-      ? { ...fg, status: "STORED" as const, storedAt: nowStr, storedBy }
+      ? { ...fg, status: "STORED" as const, storedAt: nowStr, storedBy, rackLocation }
       : fg
   );
   localStorage.setItem(STORAGE_KEYS.FINISHED_GOODS, JSON.stringify(updated));
   emitDataBusSync("FINISHED_GOOD_STORED");
 }
 
-export function receiveAllReadyFinishedGoodsByOrder(orderNumber: string, storedBy: string = "Kang Asep (Gudang)") {
+export function receiveAllReadyFinishedGoodsByOrder(orderNumber: string, storedBy: string = "Kang Asep (Gudang)", rackLocation: string = "RAK-FG-A1") {
   if (typeof window === "undefined") return;
   const current = getFinishedGoods();
   const nowStr = new Date().toLocaleString("id-ID", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" });
   const updated = current.map((fg) =>
     fg.orderNumber === orderNumber && fg.status === "READY_FOR_WAREHOUSE"
-      ? { ...fg, status: "STORED" as const, storedAt: nowStr, storedBy }
+      ? { ...fg, status: "STORED" as const, storedAt: nowStr, storedBy, rackLocation }
       : fg
   );
   localStorage.setItem(STORAGE_KEYS.FINISHED_GOODS, JSON.stringify(updated));
   emitDataBusSync("FINISHED_GOOD_STORED");
 }
 
-// 1E. Issued Invoices with PPN 11% (Adopted from TestLukia-main)
+// ── Invoicing with Explicit PPN 11% ───────────────────────────────────────────
+
 export function getIssuedInvoices(): IssuedInvoiceRecord[] {
   if (typeof window === "undefined") return DEFAULT_ISSUED_INVOICES;
   try {
@@ -690,7 +1119,147 @@ export function saveIssuedInvoice(inv: IssuedInvoiceRecord) {
   emitDataBusSync("INVOICE_ISSUED");
 }
 
-// 2. Cutting Batches (Meja Potong Gudang -> FIFO Assembly)
+export function issueInvoiceFromOrder(orderNumber: string): IssuedInvoiceRecord | null {
+  const order = getOrderByIdOrRef(orderNumber);
+  if (!order) return null;
+
+  const current = getIssuedInvoices();
+  const nextSeq = current.length + 1;
+  const invoiceNumber = `INV-2026-${String(nextSeq).padStart(3, "0")}`;
+  const price = order.sellingPricePerUnit || 245000;
+  const qty = (order.clearedQc && order.clearedQc > 0) ? order.clearedQc : order.targetQty;
+  const subtotalWithoutPpn = qty * price;
+  const ppnRate = 11;
+  const ppnAmount = Math.round((subtotalWithoutPpn * ppnRate) / 100);
+  const totalWithPpn = subtotalWithoutPpn + ppnAmount;
+
+  const newInvoice: IssuedInvoiceRecord = {
+    id: `inv-${Date.now()}`,
+    invoiceNumber,
+    orderNumber: order.orderNumber,
+    clientCode: order.clientCode,
+    clientName: order.clientName,
+    articleName: order.article,
+    scheme: order.scheme,
+    quantity: qty,
+    pricePerUnit: price,
+    subtotalWithoutPpn,
+    ppnRate,
+    ppnAmount,
+    totalWithPpn,
+    fulfillmentMethod: "SHIPPING",
+    paymentStatus: "UNPAID",
+    issuedAt: new Date().toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" }),
+  };
+
+  saveIssuedInvoice(newInvoice);
+  return newInvoice;
+}
+
+// ── Rate Cards API ────────────────────────────────────────────────────────────
+
+export function getRateCards(): RateCardRecord[] {
+  if (typeof window === "undefined") return DEFAULT_RATE_CARDS;
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.RATE_CARDS);
+    if (!raw) {
+      localStorage.setItem(STORAGE_KEYS.RATE_CARDS, JSON.stringify(DEFAULT_RATE_CARDS));
+      return DEFAULT_RATE_CARDS;
+    }
+    return JSON.parse(raw);
+  } catch {
+    return DEFAULT_RATE_CARDS;
+  }
+}
+
+export function saveRateCard(card: RateCardRecord) {
+  if (typeof window === "undefined") return;
+  const current = getRateCards();
+  const filtered = current.filter((c) => c.id !== card.id);
+  const updated = [card, ...filtered];
+  localStorage.setItem(STORAGE_KEYS.RATE_CARDS, JSON.stringify(updated));
+  emitDataBusSync("RATE_CARD_SAVED");
+}
+
+// ── Production Allocations & Outputs API ───────────────────────────────────────
+
+export function getLineAllocations(): LineAllocationRecord[] {
+  if (typeof window === "undefined") return DEFAULT_LINE_ALLOCATIONS;
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.LINE_ALLOCATIONS);
+    if (!raw) {
+      localStorage.setItem(STORAGE_KEYS.LINE_ALLOCATIONS, JSON.stringify(DEFAULT_LINE_ALLOCATIONS));
+      return DEFAULT_LINE_ALLOCATIONS;
+    }
+    return JSON.parse(raw);
+  } catch {
+    return DEFAULT_LINE_ALLOCATIONS;
+  }
+}
+
+export function saveLineAllocation(alloc: LineAllocationRecord) {
+  if (typeof window === "undefined") return;
+  const current = getLineAllocations();
+  const filtered = current.filter((a) => a.id !== alloc.id);
+  const updated = [alloc, ...filtered];
+  localStorage.setItem(STORAGE_KEYS.LINE_ALLOCATIONS, JSON.stringify(updated));
+  emitDataBusSync("ALLOCATION_SAVED");
+}
+
+export function getUnverifiedOutputs(): UnverifiedOutputRecord[] {
+  if (typeof window === "undefined") return DEFAULT_UNVERIFIED_OUTPUTS;
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.UNVERIFIED_OUTPUTS);
+    if (!raw) {
+      localStorage.setItem(STORAGE_KEYS.UNVERIFIED_OUTPUTS, JSON.stringify(DEFAULT_UNVERIFIED_OUTPUTS));
+      return DEFAULT_UNVERIFIED_OUTPUTS;
+    }
+    return JSON.parse(raw);
+  } catch {
+    return DEFAULT_UNVERIFIED_OUTPUTS;
+  }
+}
+
+export function verifyOutputEntry(entryId: string) {
+  if (typeof window === "undefined") return;
+  const current = getUnverifiedOutputs();
+  const target = current.find((e) => e.id === entryId);
+  if (!target) return;
+
+  const updated = current.map((e) => (e.id === entryId ? { ...e, status: "VERIFIED" as const } : e));
+  localStorage.setItem(STORAGE_KEYS.UNVERIFIED_OUTPUTS, JSON.stringify(updated));
+
+  // Update line allocation count
+  const allocs = getLineAllocations();
+  const updatedAllocs = allocs.map((a) =>
+    a.workerName === target.workerName && a.componentName === target.componentName
+      ? { ...a, producedUnits: a.producedUnits + target.quantity }
+      : a
+  );
+  localStorage.setItem(STORAGE_KEYS.LINE_ALLOCATIONS, JSON.stringify(updatedAllocs));
+
+  emitDataBusSync("OUTPUT_VERIFIED");
+}
+
+export function assembleCompletedProducts(orderNumber: string, count: number, assembledBy: string = "Meja Assembly #1 (Rina & Siti)") {
+  if (typeof window === "undefined") return;
+  for (let i = 0; i < count; i++) {
+    const serial = `BAG-SNO-${Math.floor(1000 + Math.random() * 9000)}`;
+    pushToQcQueue({
+      serial,
+      orderNumber,
+      articleName: "Snøhund Alpine Tactical Backpack 35L",
+      assembledBy,
+      arrivedAt: new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }) + " WIB",
+      status: "WAITING",
+      isReinspection: false,
+    });
+  }
+  emitDataBusSync("PRODUCTS_ASSEMBLED");
+}
+
+// ── Cutting Batches API ───────────────────────────────────────────────────────
+
 export function getCuttingBatches(): CuttingBatch[] {
   if (typeof window === "undefined") return DEFAULT_CUTTING_BATCHES;
   try {
@@ -713,7 +1282,8 @@ export function addCuttingBatch(batch: CuttingBatch) {
   emitDataBusSync("CUTTING_BATCH_ADDED");
 }
 
-// 3. QC Queue (Assembly Selesai -> Antrean Terminal QC: PASS & REPAIR only)
+// ── QC Queue API (PASS and REPAIR only) ────────────────────────────────────────
+
 export function getQcQueue(): QcQueueItem[] {
   if (typeof window === "undefined") return DEFAULT_QC_QUEUE;
   try {
@@ -768,6 +1338,15 @@ export function updateQcQueueItem(
       status: "READY_FOR_WAREHOUSE",
       passedQcAt: new Date().toLocaleString("id-ID", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }),
     });
+
+    // Also increment order clearedQc count
+    const allOrders = getAllMassOrders();
+    const updatedOrders = allOrders.map((o) =>
+      o.orderNumber === target.orderNumber
+        ? { ...o, clearedQc: (o.clearedQc || 0) + 1, completedQty: (o.completedQty || 0) + 1 }
+        : o
+    );
+    localStorage.setItem(STORAGE_KEYS.ALL_ORDERS, JSON.stringify(updatedOrders));
   }
 
   emitDataBusSync("QC_QUEUE_UPDATED");
@@ -790,7 +1369,8 @@ export function completeRepairAndReturnToQc(serial: string, repairNote?: string)
   emitDataBusSync("QC_REPAIR_COMPLETED");
 }
 
-// 4. Custom Inbound Raw Materials
+// ── Custom Inbound Raw Materials API ──────────────────────────────────────────
+
 export function getCustomInventory(): InventoryItemCustom[] {
   if (typeof window === "undefined") return [];
   try {
@@ -809,7 +1389,8 @@ export function addCustomInventory(item: InventoryItemCustom) {
   emitDataBusSync("INVENTORY_ADDED");
 }
 
-// 5. QC Pool Bonus Live Sync
+// ── Live QC Pool Bonus API ────────────────────────────────────────────────────
+
 export function getLiveQcPoolBonus(defaultPool: number = 600): number {
   if (typeof window === "undefined") return defaultPool;
   try {
@@ -829,3 +1410,18 @@ export function incrementLiveQcPoolBonus(amount: number = 300): number {
   return next;
 }
 
+// ── Users / RBAC Directory API ────────────────────────────────────────────────
+
+export function getUserAccounts(): UserAccountRecord[] {
+  if (typeof window === "undefined") return DEFAULT_USERS;
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.USERS);
+    if (!raw) {
+      localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(DEFAULT_USERS));
+      return DEFAULT_USERS;
+    }
+    return JSON.parse(raw);
+  } catch {
+    return DEFAULT_USERS;
+  }
+}
