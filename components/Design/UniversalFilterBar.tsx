@@ -24,10 +24,9 @@ interface UniversalFilterBarProps {
 
 export const CLIENT_CATALOG = [
   { code: "ALL", name: "Semua Klien & Brand", group: "ALL" },
-  { code: "SNOHUND", name: "Snøhund (Internal Made-to-Order)", group: "INTERNAL" },
-  { code: "KLIEN_A", name: "PT Bintang Tekstil Mandiri (Klien A)", group: "MAKLON" },
-  { code: "KLIEN_B", name: "CV Bandung Garment Lestari (Klien B)", group: "MAKLON" },
-  { code: "KLIEN_C", name: "PT Cipta Busana Sejahtera (Klien C)", group: "MAKLON" },
+  { code: "SNOHUND", name: "Snøhund Alpine Wear (Internal)", group: "INTERNAL" },
+  { code: "KLIEN_A", name: "PT Bandung Apparel (B2B)", group: "MAKLON" },
+  { code: "KLIEN_B", name: "CV Priangan Outdoor (B2B)", group: "MAKLON" },
 ];
 
 export const UniversalFilterBar: React.FC<UniversalFilterBarProps> = ({
@@ -118,14 +117,13 @@ export const UniversalFilterBar: React.FC<UniversalFilterBarProps> = ({
                 onChange={(e) => onChange({ ...filter, clientCode: e.target.value })}
                 className="w-full text-xs font-bold py-2 px-3 bg-white border border-garis rounded-field text-celup-indigo focus:outline-none focus:border-celup-indigo cursor-pointer truncate"
               >
-                <option value="ALL">🏢 Semua Klien & Brand</option>
+                <option value="ALL">Semua Klien & Brand</option>
                 <optgroup label="── MERK INTERNAL ──">
-                  <option value="SNOHUND">🏷️ [SH] Snøhund (Made-to-Order)</option>
+                  <option value="SNOHUND">Snøhund Alpine Wear (Internal)</option>
                 </optgroup>
                 <optgroup label="── KLIEN MAKLON B2B ──">
-                  <option value="KLIEN_A">🏭 [KA] PT Bintang Tekstil Mandiri</option>
-                  <option value="KLIEN_B">🏭 [KB] CV Bandung Garment Lestari</option>
-                  <option value="KLIEN_C">🏭 [KC] PT Cipta Busana Sejahtera</option>
+                  <option value="KLIEN_A">PT Bandung Apparel (B2B)</option>
+                  <option value="KLIEN_B">CV Priangan Outdoor (B2B)</option>
                 </optgroup>
               </select>
             </div>

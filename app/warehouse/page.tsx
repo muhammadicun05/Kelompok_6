@@ -25,7 +25,16 @@ import {
   addCuttingBatch, 
   getCustomInventory, 
   addCustomInventory, 
-  InventoryItemCustom 
+  InventoryItemCustom,
+  getRawMaterialCatalog,
+  getPurchaseOrders,
+  addPurchaseOrder,
+  getFinishedGoods,
+  receiveFinishedGoodToWarehouse,
+  receiveAllReadyFinishedGoodsByOrder,
+  RawMaterialMaster,
+  PurchaseOrderRecord,
+  FinishedGoodRecord
 } from "@/lib/dataBus";
 
 export default function WarehousePage() {
@@ -42,10 +51,22 @@ export default function WarehousePage() {
     datePreset: "ALL",
   });
   const [loading, setLoading] = useState(true);
-  const [warehouseTab, setWarehouseTab] = useState<"INVENTORY" | "CUTTING">("INVENTORY");
+  const [warehouseTab, setWarehouseTab] = useState<"INVENTORY" | "CUTTING" | "FINISHED_GOODS" | "CATALOG_PO">("INVENTORY");
   const [cuttingBatches, setCuttingBatches] = useState<any[]>([]);
   const [newCutOrder, setNewCutOrder] = useState<string>("ORD-2026-004");
   const [newCutQty, setNewCutQty] = useState<number>(50);
+
+  // Catalog, PO & Finished Goods State (Adopted from TestLukia-main & Schema v0.2)
+  const [rawCatalog, setRawCatalog] = useState<RawMaterialMaster[]>([]);
+  const [purchaseOrders, setPurchaseOrders] = useState<PurchaseOrderRecord[]>([]);
+  const [finishedGoods, setFinishedGoods] = useState<FinishedGoodRecord[]>([]);
+  const [rackInput, setRackInput] = useState<string>("RAK-FG-A1");
+  const [poForm, setPoForm] = useState({
+    orderNumber: "ORD-2026-004",
+    rawMaterialCode: "RM-0001",
+    qtyOrdered: 250,
+    poType: "SUPPLIER_PO" as "SUPPLIER_PO" | "CLIENT_COMMITMENT",
+  });
 
   // Inbound Material Modal State
   const [showInboundModal, setShowInboundModal] = useState<boolean>(false);
@@ -123,8 +144,11 @@ export default function WarehousePage() {
         setSelectedOrderId(combinedOrders[0].id);
       }
 
-      // 3. Sync cutting batches from data bus
+      // 3. Sync cutting batches, raw material catalog, POs, and finished goods from data bus
       setCuttingBatches(getCuttingBatches());
+      setRawCatalog(getRawMaterialCatalog());
+      setPurchaseOrders(getPurchaseOrders());
+      setFinishedGoods(getFinishedGoods());
 
       // 4. Fetch audit logs
       const { data: txData } = await supabase
@@ -185,7 +209,7 @@ export default function WarehousePage() {
     setShowInboundModal(false);
     loadData();
     alert(
-      `Bahan Masuk ${newItem.item_code} (${newItem.name} - ${newItem.current_stock} ${newItem.unit}) BERHASIL dicatat & dilabeli QR Tag ID Klien [${inboundForm.clientCode}]!`
+      `Bahan Masuk ${newItem.item_code} (${newItem.name} - ${newItem.current_stock} ${newItem.unit}) BERHASIL dicatat & dilabeli QR Tag ID Klien (${clientName})!`
     );
   };
 
@@ -279,7 +303,7 @@ export default function WarehousePage() {
             Gudang Multi-Tenant & Anti-Kontaminasi (Pencegahan Bahan Tertukar)
           </h1>
           <p className="text-xs text-teks-sekunder mt-0.5">
-            Pemisahan Bahan Klien (FR-6.1) • Stasiun Meja Potong (Cutting) • Validasi Kecocokan Bahan & Pesanan (FR-6.2)
+            Pemisahan Bahan Klien (FR-6.1) • Stasiun Meja Potong (Cutting) • Gudang Barang Jadi • Katalog Bahan & PO
           </p>
         </div>
 
@@ -388,9 +412,9 @@ export default function WarehousePage() {
                     onChange={(e) => setInboundForm({ ...inboundForm, clientCode: e.target.value })}
                     className="w-full bg-white border border-garis rounded p-2 font-bold text-celup-indigo"
                   >
-                    <option value="SNOHUND">Snøhund Alpine Wear [SH]</option>
-                    <option value="KLIEN_A">PT Bandung Apparel [KA]</option>
-                    <option value="KLIEN_B">CV Priangan Outdoor [KB]</option>
+                    <option value="SNOHUND">Snøhund Alpine Wear (Internal)</option>
+                    <option value="KLIEN_A">PT Bandung Apparel (B2B)</option>
+                    <option value="KLIEN_B">CV Priangan Outdoor (B2B)</option>
                   </select>
                 </div>
 
@@ -471,7 +495,7 @@ export default function WarehousePage() {
         searchPlaceholder="Cari bahan baku (Taslan, Fleece, Cotton, roll)..."
       />
 
-      {/* 2 Stasiun Kerja: Inventaris vs Meja Potong (Cutting Station) - Opsi A */}
+      {/* 4 Stasiun Kerja Gudang: Inventaris, Meja Potong, Gudang Barang Jadi, & Katalog/PO */}
       <div className="flex gap-2 border-b border-garis pb-1 overflow-x-auto">
         <button
           onClick={() => setWarehouseTab("INVENTORY")}
@@ -492,6 +516,31 @@ export default function WarehousePage() {
           }`}
         >
           2. Meja Potong (Cutting Station)
+        </button>
+        <button
+          onClick={() => setWarehouseTab("FINISHED_GOODS")}
+          className={`px-4 py-2 text-xs font-bold rounded-field transition-all whitespace-nowrap flex items-center gap-1.5 ${
+            warehouseTab === "FINISHED_GOODS"
+              ? "bg-celup-indigo text-white shadow-sm"
+              : "bg-white text-teks-sekunder hover:text-celup-indigo border border-garis"
+          }`}
+        >
+          <span>3. Gudang Barang Jadi (Finished Goods)</span>
+          {finishedGoods.filter((f) => f.status === "READY_FOR_WAREHOUSE").length > 0 && (
+            <span className="px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-status-lolos text-white">
+              {finishedGoods.filter((f) => f.status === "READY_FOR_WAREHOUSE").length} Siap
+            </span>
+          )}
+        </button>
+        <button
+          onClick={() => setWarehouseTab("CATALOG_PO")}
+          className={`px-4 py-2 text-xs font-bold rounded-field transition-all whitespace-nowrap ${
+            warehouseTab === "CATALOG_PO"
+              ? "bg-celup-indigo text-white shadow-sm"
+              : "bg-white text-teks-sekunder hover:text-celup-indigo border border-garis"
+          }`}
+        >
+          4. Katalog Bahan (RM-NNNN) & PO Bahan
         </button>
       </div>
 
@@ -537,7 +586,7 @@ export default function WarehousePage() {
             >
               {items.map((it) => (
                 <option key={it.id} value={it.id}>
-                  [{getClientMonogram(it.clients?.client_code)}] {it.item_name} (Sisa: {it.qty_on_hand} {it.unit})
+                  ({it.clients?.name}) {it.item_name} (Sisa: {it.qty_on_hand} {it.unit})
                 </option>
               ))}
             </select>
@@ -562,7 +611,7 @@ export default function WarehousePage() {
             >
               {orders.map((o) => (
                 <option key={o.id} value={o.id}>
-                  {o.order_number} — {o.article_name} ([{getClientMonogram(o.clients?.client_code)}] {o.clients?.name})
+                  {o.order_number} — {o.article_name} ({o.clients?.name})
                 </option>
               ))}
             </select>
@@ -611,7 +660,7 @@ export default function WarehousePage() {
 
         <div className="text-[11px] text-teks-sekunder bg-white p-2.5 rounded border border-garis flex items-center justify-between">
           <span>
-            💡 <strong>Uji UAT-01:</strong> Pilih bahan milik <em>[KA] Klien A</em> dan arahkan ke Order milik <em>[KB] Klien B</em> untuk membuktikan proteksi layar merah blokir anti-kontaminasi seketika.
+            💡 <strong>Uji UAT-01:</strong> Pilih bahan milik <em>PT Bandung Apparel</em> dan arahkan ke Order milik <em>CV Priangan Outdoor</em> untuk membuktikan proteksi layar merah blokir anti-kontaminasi seketika.
           </span>
         </div>
       </div>
@@ -644,31 +693,31 @@ export default function WarehousePage() {
               onClick={() => setFilter(prev => ({ ...prev, clientCode: "SNOHUND" }))}
               className={`px-2.5 py-1 text-xs rounded font-semibold border ${
                 filter.clientCode === "SNOHUND"
-                  ? "bg-thread-snohund text-white border-thread-snohund"
-                  : "bg-white text-teks-sekunder border-garis"
+                  ? "bg-celup-indigo text-white border-celup-indigo"
+                  : "bg-white text-teks-sekunder border-garis hover:border-celup-indigo"
               }`}
             >
-              SH Snøhund
+              Snøhund (Internal)
             </button>
             <button
               onClick={() => setFilter(prev => ({ ...prev, clientCode: "KLIEN_A" }))}
               className={`px-2.5 py-1 text-xs rounded font-semibold border ${
                 filter.clientCode === "KLIEN_A"
-                  ? "bg-thread-klien1 text-white border-thread-klien1"
-                  : "bg-white text-teks-sekunder border-garis"
+                  ? "bg-celup-indigo text-white border-celup-indigo"
+                  : "bg-white text-teks-sekunder border-garis hover:border-celup-indigo"
               }`}
             >
-              KA Klien A
+              PT Bandung Apparel (B2B)
             </button>
             <button
               onClick={() => setFilter(prev => ({ ...prev, clientCode: "KLIEN_B" }))}
               className={`px-2.5 py-1 text-xs rounded font-semibold border ${
                 filter.clientCode === "KLIEN_B"
-                  ? "bg-thread-klien2 text-white border-thread-klien2"
-                  : "bg-white text-teks-sekunder border-garis"
+                  ? "bg-celup-indigo text-white border-celup-indigo"
+                  : "bg-white text-teks-sekunder border-garis hover:border-celup-indigo"
               }`}
             >
-              KB Klien B
+              CV Priangan Outdoor (B2B)
             </button>
           </div>
         </div>
@@ -690,7 +739,7 @@ export default function WarehousePage() {
               {filteredItems.map((it) => (
                 <tr key={it.id} className="hover:bg-white/80 transition-colors">
                   <td className="py-3 pl-3">
-                    <ThreadEdge clientCode={it.clients?.client_code} className="pl-2">
+                    <ThreadEdge clientCode={it.clients?.client_code}>
                       <div className="flex items-center gap-1.5">
                         <ClientTag
                           clientCode={it.clients?.client_code}
@@ -844,6 +893,358 @@ export default function WarehousePage() {
                       <td className="py-2.5 px-3 text-right">
                         <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-status-lolos/10 text-status-lolos border border-status-lolos/20">
                           {b.status}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* TAB 3: GUDANG BARANG JADI (FINISHED GOODS INTAKE - ADOPTED FROM TESTLUKIA-MAIN) */}
+      {warehouseTab === "FINISHED_GOODS" && (
+        <div className="space-y-6">
+          {/* Waiting for Warehouse Intake */}
+          <div className="bg-lembar p-5 rounded-work border-2 border-celup-indigo shadow-hard space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-garis pb-3">
+              <div>
+                <h2 className="text-sm font-bold text-celup-indigo flex items-center gap-2">
+                  <Package className="w-4 h-4 text-status-lolos" />
+                  <span>Antrean Siap Masuk Gudang Barang Jadi (Lolos QC)</span>
+                </h2>
+                <p className="text-xs text-teks-sekunder mt-0.5">
+                  Setiap unit yang diputuskan <strong>LOLOS (PASS)</strong> di Terminal QC wajib diterima & disimpan ke Rak Gudang Barang Jadi sebelum diterbitkan Invoice B2B.
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-semibold text-teks-sekunder">Petugas Penerima / Rak:</span>
+                <input
+                  type="text"
+                  value={rackInput}
+                  onChange={(e) => setRackInput(e.target.value)}
+                  className="w-36 bg-white border border-garis rounded px-2 py-1 text-xs font-mono font-bold text-celup-indigo"
+                />
+              </div>
+            </div>
+
+            {finishedGoods.filter((f) => f.status === "READY_FOR_WAREHOUSE").length === 0 ? (
+              <div className="p-4 bg-white rounded border border-garis text-center text-xs text-teks-sekunder">
+                Semua unit yang lolos QC sudah tersimpan di Rak Gudang Barang Jadi (`STORED`).
+              </div>
+            ) : (
+              <div className="overflow-x-auto bg-white rounded border border-garis">
+                <table className="w-full text-xs text-left">
+                  <thead className="bg-kabut text-tinta font-bold border-b border-garis">
+                    <tr>
+                      <th className="py-2.5 px-3">Serial Unit</th>
+                      <th className="py-2.5 px-2">Order & Klien</th>
+                      <th className="py-2.5 px-2">Artikel Produk</th>
+                      <th className="py-2.5 px-2">Waktu Lolos QC</th>
+                      <th className="py-2.5 px-3 text-right">Aksi Gudang</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-garis">
+                    {finishedGoods
+                      .filter((f) => f.status === "READY_FOR_WAREHOUSE")
+                      .map((fg) => (
+                        <tr key={fg.id} className="hover:bg-lembar">
+                          <td className="py-2.5 px-3 font-mono font-bold text-celup-indigo">{fg.serialNumber}</td>
+                          <td className="py-2.5 px-2">
+                            <span className="font-mono font-bold text-tinta block">{fg.orderNumber}</span>
+                            <ClientTag clientCode={fg.clientCode} clientName={fg.clientName} />
+                          </td>
+                          <td className="py-2.5 px-2 font-semibold text-tinta">{fg.articleName}</td>
+                          <td className="py-2.5 px-2 font-mono text-teks-sekunder">{fg.passedQcAt}</td>
+                          <td className="py-2.5 px-3 text-right">
+                            <button
+                              onClick={() => {
+                                receiveFinishedGoodToWarehouse(fg.serialNumber, `Kang Asep (${rackInput})`);
+                                setFinishedGoods(getFinishedGoods());
+                                alert(
+                                  `Unit Barang Jadi ${fg.serialNumber} (${fg.orderNumber}) BERHASIL diterima & disimpan di Rak Gudang (${rackInput}) dengan status STORED!`
+                                );
+                              }}
+                              className="px-3 py-1.5 bg-status-lolos text-white font-bold rounded text-[11px] shadow-xs hover:bg-status-lolos/90"
+                            >
+                              Terima ke Gudang (Stored) →
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+
+          {/* Stored Finished Goods Inventory */}
+          <div className="bg-white p-5 rounded-work border border-garis shadow-hard space-y-3">
+            <div className="flex items-center justify-between border-b border-garis pb-2">
+              <div>
+                <h3 className="text-sm font-bold text-celup-indigo">
+                  Stok Barang Jadi Tersimpan di Gudang (`STORED` — Siap Kirim / Pickup & Invoicing)
+                </h3>
+                <p className="text-xs text-teks-sekunder">
+                  Daftar barang jadi yang telah resmi masuk gudang dan siap ditagihkan oleh Tim Finance
+                </p>
+              </div>
+              <span className="px-2.5 py-1 rounded bg-status-lolos/10 text-status-lolos font-bold text-xs border border-status-lolos/30">
+                Total Stored: {finishedGoods.filter((f) => f.status === "STORED").length} Unit Serial
+              </span>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs text-left">
+                <thead className="bg-kabut text-tinta font-bold border-b border-garis">
+                  <tr>
+                    <th className="py-2.5 px-3">ID / Serial</th>
+                    <th className="py-2.5 px-2">Order & Klien</th>
+                    <th className="py-2.5 px-2">Artikel Produk</th>
+                    <th className="py-2.5 px-2">Disimpan Oleh / Rak</th>
+                    <th className="py-2.5 px-3 text-right">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-garis">
+                  {finishedGoods
+                    .filter((f) => f.status === "STORED")
+                    .map((fg) => (
+                      <tr key={fg.id} className="hover:bg-lembar">
+                        <td className="py-2.5 px-3 font-mono font-bold text-celup-indigo">{fg.serialNumber}</td>
+                        <td className="py-2.5 px-2">
+                          <span className="font-mono font-bold text-tinta block">{fg.orderNumber}</span>
+                          <ClientTag clientCode={fg.clientCode} clientName={fg.clientName} />
+                        </td>
+                        <td className="py-2.5 px-2 font-semibold text-tinta">{fg.articleName}</td>
+                        <td className="py-2.5 px-2 font-mono text-teks-sekunder">{fg.storedBy || "Kang Asep (RAK-FG-A1)"}</td>
+                        <td className="py-2.5 px-3 text-right">
+                          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-status-lolos text-white">
+                            STORED ({fg.storedAt})
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* TAB 4: KATALOG BAHAN BAKU MASTER (RM-NNNN) & PURCHASE ORDER / KOMITMEN KLIEN */}
+      {warehouseTab === "CATALOG_PO" && (
+        <div className="space-y-6">
+          {/* Master Raw Material Catalog */}
+          <div className="bg-white p-5 rounded-work border border-garis shadow-hard space-y-3">
+            <div className="flex items-center justify-between border-b border-garis pb-2">
+              <div>
+                <h2 className="text-sm font-bold text-celup-indigo">
+                  Katalog Master Bahan Baku & Aksesoris (`RM-0001` s/d `RM-0005`)
+                </h2>
+                <p className="text-xs text-teks-sekunder">
+                  Master katalog bahan baku lintas klien untuk pengajuan PO Bahan Baku & pencatatan stok
+                </p>
+              </div>
+              <span className="text-xs font-mono font-bold text-celup-indigo bg-kabut px-2.5 py-1 rounded">
+                {rawCatalog.length} Material Terdaftar
+              </span>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs text-left">
+                <thead className="bg-kabut text-tinta font-bold border-b border-garis">
+                  <tr>
+                    <th className="py-2.5 px-3">Kode Material (SKU)</th>
+                    <th className="py-2.5 px-2">Nama Bahan Baku</th>
+                    <th className="py-2.5 px-2">Kategori</th>
+                    <th className="py-2.5 px-2 text-right">Stok Fisik Tersedia</th>
+                    <th className="py-2.5 px-3 text-right">Jumlah Klien Pemakai</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-garis">
+                  {rawCatalog.map((rm) => (
+                    <tr key={rm.id} className="hover:bg-lembar">
+                      <td className="py-2.5 px-3 font-mono font-bold text-celup-indigo">{rm.sku}</td>
+                      <td className="py-2.5 px-2 font-semibold text-tinta">{rm.name}</td>
+                      <td className="py-2.5 px-2 text-teks-sekunder">{rm.category}</td>
+                      <td className="py-2.5 px-2 text-right font-mono font-bold text-celup-indigo">
+                        {rm.stockOnHand} {rm.defaultUnit}
+                      </td>
+                      <td className="py-2.5 px-3 text-right font-mono text-teks-sekunder">
+                        {rm.clientCount} Klien
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Request New PO / Client Commitment + List of POs */}
+          <div className="bg-lembar p-5 rounded-work border-2 border-celup-indigo shadow-hard space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-garis pb-2">
+              <div>
+                <h3 className="text-sm font-bold text-celup-indigo">
+                  Manajemen Purchase Order (PO Supplier) & Surat Komitmen Bahan Klien (CMT)
+                </h3>
+                <p className="text-xs text-teks-sekunder">
+                  PO Supplier diajukan oleh Gudang dan direview oleh Tim Finance (`PENDING` → `APPROVED`)
+                </p>
+              </div>
+            </div>
+
+            {/* Form Pengajuan PO Baru */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-3 bg-white p-3.5 rounded-field border border-garis">
+              <div>
+                <label className="text-[11px] font-bold text-teks-sekunder block mb-1">
+                  Pesanan Terkait:
+                </label>
+                <select
+                  value={poForm.orderNumber}
+                  onChange={(e) => setPoForm({ ...poForm, orderNumber: e.target.value })}
+                  className="w-full text-xs border border-garis rounded p-2 font-bold text-celup-indigo"
+                >
+                  {orders.map((o) => (
+                    <option key={o.id} value={o.order_number}>
+                      {o.order_number} ({o.clients?.name})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="text-[11px] font-bold text-teks-sekunder block mb-1">
+                  Pilih Material Katalog:
+                </label>
+                <select
+                  value={poForm.rawMaterialCode}
+                  onChange={(e) => setPoForm({ ...poForm, rawMaterialCode: e.target.value })}
+                  className="w-full text-xs border border-garis rounded p-2 font-bold text-tinta"
+                >
+                  {rawCatalog.map((rm) => (
+                    <option key={rm.sku} value={rm.sku}>
+                      {rm.sku} — {rm.name} ({rm.defaultUnit})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="text-[11px] font-bold text-teks-sekunder block mb-1">
+                  Jenis Dokumen PO:
+                </label>
+                <select
+                  value={poForm.poType}
+                  onChange={(e) =>
+                    setPoForm({
+                      ...poForm,
+                      poType: e.target.value as "SUPPLIER_PO" | "CLIENT_COMMITMENT",
+                    })
+                  }
+                  className="w-full text-xs border border-garis rounded p-2 font-bold text-celup-indigo"
+                >
+                  <option value="SUPPLIER_PO">PO Beli ke Supplier (Full Package / Semi-CMT)</option>
+                  <option value="CLIENT_COMMITMENT">Surat Komitmen Bahan Titipan Klien (CMT)</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="text-[11px] font-bold text-teks-sekunder block mb-1">
+                  Kuantitas & Kirim ke Finance:
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="number"
+                    min="1"
+                    value={poForm.qtyOrdered}
+                    onChange={(e) => setPoForm({ ...poForm, qtyOrdered: Number(e.target.value) })}
+                    className="w-20 text-xs border border-garis rounded p-2 font-mono font-bold text-celup-indigo"
+                  />
+                  <button
+                    onClick={() => {
+                      const rm = rawCatalog.find((r) => r.sku === poForm.rawMaterialCode) || rawCatalog[0];
+                      const ord = orders.find((o) => o.order_number === poForm.orderNumber);
+                      const isCommitment = poForm.poType === "CLIENT_COMMITMENT";
+                      const newPo: PurchaseOrderRecord = {
+                        id: `po-${Date.now()}`,
+                        poNumber: isCommitment
+                          ? `CMT-PO-2026-00${purchaseOrders.length + 1}`
+                          : `PO-2026-00${purchaseOrders.length + 1}`,
+                        docType: poForm.poType,
+                        orderNumber: poForm.orderNumber,
+                        clientName: ord?.clients?.name || "Snøhund Alpine Wear",
+                        supplierOrClient: isCommitment
+                          ? `Titipan Klien: ${ord?.clients?.name || "Klien B2B"}`
+                          : "PT Tekstil Nusantara (Supplier)",
+                        rawMaterialSku: rm.sku,
+                        itemName: rm.name,
+                        quantity: poForm.qtyOrdered,
+                        unit: rm.defaultUnit,
+                        status: "PENDING",
+                        createdBy: "Kang Asep (Kepala Gudang)",
+                        createdAt: new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }),
+                      };
+                      addPurchaseOrder(newPo);
+                      setPurchaseOrders(getPurchaseOrders());
+                      alert(
+                        `Dokumen ${newPo.poNumber} (${newPo.itemName} - ${newPo.quantity} ${newPo.unit}) BERHASIL diajukan dan masuk ke antrean Review Finance!`
+                      );
+                    }}
+                    className="flex-1 bg-celup-indigo text-white font-bold text-xs px-3 py-2 rounded shadow-hard hover:bg-celup-indigo/90"
+                  >
+                    + Ajukan PO
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Tabel Daftar PO */}
+            <div className="overflow-x-auto bg-white rounded border border-garis">
+              <table className="w-full text-xs text-left">
+                <thead className="bg-kabut text-tinta font-bold border-b border-garis">
+                  <tr>
+                    <th className="py-2.5 px-3">Nomor PO</th>
+                    <th className="py-2.5 px-2">Order & Klien</th>
+                    <th className="py-2.5 px-2">Tipe & Supplier</th>
+                    <th className="py-2.5 px-2">Material</th>
+                    <th className="py-2.5 px-2 text-right">Qty</th>
+                    <th className="py-2.5 px-3 text-right">Status Review Finance</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-garis">
+                  {purchaseOrders.map((po) => (
+                    <tr key={po.id} className="hover:bg-lembar">
+                      <td className="py-2.5 px-3 font-mono font-bold text-celup-indigo">{po.poNumber}</td>
+                      <td className="py-2.5 px-2">
+                        <span className="font-mono font-bold text-tinta block">{po.orderNumber}</span>
+                        <span className="text-[11px] text-teks-sekunder">{po.clientName}</span>
+                      </td>
+                      <td className="py-2.5 px-2">
+                        <span className="font-semibold text-tinta block">{po.supplierOrClient}</span>
+                        <span className="text-[10px] text-teks-sekunder">
+                          {po.docType === "CLIENT_COMMITMENT" ? "Komitmen Bahan CMT" : "PO Beli Supplier"}
+                        </span>
+                      </td>
+                      <td className="py-2.5 px-2 font-medium text-tinta">
+                        <span className="font-mono text-[10px] text-celup-indigo block">{po.rawMaterialSku}</span>
+                        {po.itemName}
+                      </td>
+                      <td className="py-2.5 px-2 text-right font-mono font-bold text-tinta">
+                        {po.quantity} {po.unit}
+                      </td>
+                      <td className="py-2.5 px-3 text-right">
+                        <span
+                          className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                            po.status === "APPROVED"
+                              ? "bg-status-lolos text-white"
+                              : po.status === "REJECTED"
+                              ? "bg-status-cacat text-white"
+                              : "bg-kapur text-celup-indigo border border-celup-indigo"
+                          }`}
+                        >
+                          {po.status}
                         </span>
                       </td>
                     </tr>

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { 
   Building2, 
   CheckCircle2, 
@@ -9,41 +9,65 @@ import {
   Package, 
   ExternalLink,
   ShieldCheck,
-  Send
+  Send,
+  Receipt
 } from "lucide-react";
-import { ThreadEdge, ClientTag } from "@/components/Design/ThreadEdge";
+import { ClientTag } from "@/components/Design/ThreadEdge";
+import { 
+  getIssuedInvoices, 
+  getFinishedGoods, 
+  getPurchaseOrders, 
+  IssuedInvoiceRecord, 
+  FinishedGoodRecord, 
+  PurchaseOrderRecord 
+} from "@/lib/dataBus";
 
 const PHASES = [
   { num: 1, name: "Sampel & Studi Waktu (SMV)", status: "COMPLETED", date: "10 Okt" },
   { num: 2, name: "Persetujuan Pesanan & PO Komitmen", status: "COMPLETED", date: "12 Okt" },
   { num: 3, name: "Gudang & Penerimaan Kain Titipan", status: "COMPLETED", date: "13 Okt" },
   { num: 4, name: "Lini Jahit & Assembly", status: "IN_PROGRESS", date: "Sedang Berjalan (65%)" },
-  { num: 5, name: "Inspeksi QC Produk Utuh", status: "WAITING", date: "Menunggu Selesai Jahit" },
-  { num: 6, name: "Pengiriman & Rekapitulasi Akhir", status: "WAITING", date: "Target 20 Okt" },
+  { num: 5, name: "Inspeksi QC Produk Utuh (Pass / Repair)", status: "WAITING", date: "Menunggu Selesai Jahit" },
+  { num: 6, name: "Gudang Barang Jadi & Tagihan (PPN 11%)", status: "WAITING", date: "Target 20 Okt" },
 ];
 
 export default function B2bPortalPage() {
-  const [activeTab, setActiveTab] = useState<"PROGRESS" | "FABRIC" | "PO">("PROGRESS");
+  const [activeTab, setActiveTab] = useState<"PROGRESS" | "FABRIC" | "PO" | "INVOICES">("PROGRESS");
+  const [invoices, setInvoices] = useState<IssuedInvoiceRecord[]>([]);
+  const [finishedGoods, setFinishedGoods] = useState<FinishedGoodRecord[]>([]);
+  const [pos, setPos] = useState<PurchaseOrderRecord[]>([]);
+
+  useEffect(() => {
+    const syncPortal = () => {
+      setInvoices(getIssuedInvoices());
+      setFinishedGoods(getFinishedGoods());
+      setPos(getPurchaseOrders());
+    };
+    syncPortal();
+    window.addEventListener("lukla_bus_update", syncPortal);
+    window.addEventListener("storage", syncPortal);
+    return () => {
+      window.removeEventListener("lukla_bus_update", syncPortal);
+      window.removeEventListener("storage", syncPortal);
+    };
+  }, []);
 
   return (
     <div className="space-y-6">
-      {/* Client Brand Line (Section 8.7: Thread color banner on top) */}
-      <div className="h-2 w-full bg-thread-klien1 rounded-full"></div>
-
       {/* Header */}
       <div className="border-b border-garis pb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <div className="flex items-center gap-2">
-            <ClientTag clientCode="KLIEN_A" clientName="PT Bandung Apparel Eksklusif" />
+            <ClientTag clientCode="KLIEN_A" clientName="PT Bandung Apparel" />
             <span className="text-xs px-2 py-0.5 rounded bg-kabut font-semibold text-teks-sekunder">
-              Portal Klien B2B
+              Portal Klien B2B Terisolasi
             </span>
           </div>
           <h1 className="text-2xl font-bold text-celup-indigo tracking-tight mt-1">
-            Status Pesanan: ORD-2026-002
+            Status Pesanan: ORD-2026-002 & ORD-2026-003
           </h1>
           <p className="text-xs text-teks-sekunder">
-            Artikel: <strong>Urban Commuter Roll-Top Backpack 25L</strong> • Skema: <strong>SEMI_CMT</strong> • Target: <strong>1.000 pcs</strong>
+            Artikel: <strong>Urban Commuter Roll-Top Backpack 25L</strong> • Skema: <strong>CMT / SEMI_CMT</strong> • Target: <strong>1.200 pcs</strong>
           </p>
         </div>
 
@@ -65,7 +89,7 @@ export default function B2bPortalPage() {
               : "border-transparent text-teks-sekunder hover:text-celup-indigo"
           }`}
         >
-          Timeline 6 Fase Produksi
+          1. Timeline 6 Fase & Gudang Barang Jadi
         </button>
         <button
           onClick={() => setActiveTab("FABRIC")}
@@ -75,7 +99,7 @@ export default function B2bPortalPage() {
               : "border-transparent text-teks-sekunder hover:text-celup-indigo"
           }`}
         >
-          Saldo Kain Titipan di Gudang
+          2. Saldo Kain Titipan di Gudang
         </button>
         <button
           onClick={() => setActiveTab("PO")}
@@ -85,26 +109,37 @@ export default function B2bPortalPage() {
               : "border-transparent text-teks-sekunder hover:text-celup-indigo"
           }`}
         >
-          PO Komitmen & Tracking CMT
+          3. PO Komitmen & Tracking CMT
+        </button>
+        <button
+          onClick={() => setActiveTab("INVOICES")}
+          className={`px-3.5 sm:px-4 py-2 text-xs font-bold rounded-t-work border-b-2 transition-all whitespace-nowrap flex items-center gap-1.5 ${
+            activeTab === "INVOICES"
+              ? "border-celup-indigo text-celup-indigo bg-white"
+              : "border-transparent text-teks-sekunder hover:text-celup-indigo"
+          }`}
+        >
+          <Receipt className="w-3.5 h-3.5" />
+          <span>4. Tagihan & Invoice Resmi (PPN 11%)</span>
         </button>
       </div>
 
-      {/* Tab 1: Timeline 6 Fase (Section 8.7 of DESIGN_SYSTEM.md) */}
+      {/* Tab 1: Timeline 6 Fase */}
       {activeTab === "PROGRESS" && (
         <div className="bg-lembar p-6 rounded-work border border-garis shadow-hard space-y-6">
-          <div className="flex items-center justify-between border-b border-garis pb-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-garis pb-3 gap-2">
             <div>
               <h2 className="text-sm font-bold text-celup-indigo">
                 Alur Kerja Produksi Massal (BPMN 6 Fase)
               </h2>
               <span className="text-xs text-teks-sekunder">
-                Pembaruan data otomatis dan langsung dari lantai pabrik
+                Pembaruan data otomatis dan langsung dari lantai pabrik & Gudang Barang Jadi
               </span>
             </div>
-            <div className="text-right">
-              <span className="text-xs text-teks-sekunder block">Progres Barang Jadi:</span>
-              <span className="text-lg font-extrabold text-celup-indigo font-mono">
-                650 / 1.000 pcs (65%)
+            <div className="sm:text-right">
+              <span className="text-xs text-teks-sekunder block">Barang Jadi Tersimpan di Gudang (`STORED`):</span>
+              <span className="text-lg font-extrabold text-status-lolos font-mono">
+                {finishedGoods.filter((f) => f.status === "STORED").length} Unit Serial Siap Kirim
               </span>
             </div>
           </div>
@@ -245,7 +280,7 @@ export default function B2bPortalPage() {
               <div>
                 <span className="text-teks-sekunder block">Nomor PO Komitmen:</span>
                 <span className="font-mono font-bold text-celup-indigo text-sm">
-                  PO-CMT-KLA-001
+                  CMT-PO-2026-0002
                 </span>
               </div>
               <div className="text-right">
@@ -257,6 +292,74 @@ export default function B2bPortalPage() {
             <p className="text-teks-sekunder leading-relaxed">
               <strong>Aturan Bisnis Resmi:</strong> Pada skema maklon murni (CMT), Lukla tetap menerbitkan Purchase Order (PO) langsung kepada Klien Maklon sebagai surat komitmen resmi, sarana pelacakan (*tracking*), dan *reminder* pengiriman kain tepat waktu agar kapasitas ±70 mesin di lini jahit tidak menganggur.
             </p>
+          </div>
+        </div>
+      )}
+
+      {/* Tab 4: Tagihan & Invoice Resmi B2B (Menampilkan Tanpa PPN, PPN 11%, & Total Setelah PPN) */}
+      {activeTab === "INVOICES" && (
+        <div className="bg-lembar p-6 rounded-work border border-garis shadow-hard space-y-4">
+          <div className="flex items-center justify-between border-b border-garis pb-2">
+            <div>
+              <h2 className="text-sm font-bold text-celup-indigo">
+                Tagihan & Faktur Resmi B2B (Rincian Tanpa PPN, PPN 11% & Setelah PPN)
+              </h2>
+              <span className="text-xs text-teks-sekunder">
+                Diterbitkan secara real-time oleh Departemen Finance Lukla setelah barang jadi masuk Gudang (`STORED`)
+              </span>
+            </div>
+          </div>
+
+          <div className="overflow-x-auto bg-white rounded border border-garis">
+            <table className="w-full text-xs text-left">
+              <thead className="bg-kabut text-tinta font-bold border-b border-garis">
+                <tr>
+                  <th className="py-2.5 px-3">No. Invoice</th>
+                  <th className="py-2.5 px-2">No. Order & Artikel</th>
+                  <th className="py-2.5 px-2 text-right">Jumlah Tanpa PPN (DPP)</th>
+                  <th className="py-2.5 px-2 text-right">PPN 11%</th>
+                  <th className="py-2.5 px-2 text-right">Total Setelah PPN 11%</th>
+                  <th className="py-2.5 px-2 text-center">Serah Terima</th>
+                  <th className="py-2.5 px-3 text-right">Status Pembayaran</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-garis">
+                {invoices.map((inv) => (
+                  <tr key={inv.id} className="hover:bg-lembar">
+                    <td className="py-3 px-3 font-mono font-bold text-celup-indigo">{inv.invoiceNumber}</td>
+                    <td className="py-3 px-2">
+                      <span className="font-mono font-bold text-tinta block">{inv.orderNumber}</span>
+                      <span className="text-[11px] text-teks-sekunder">{inv.articleName} ({inv.quantity} pcs)</span>
+                    </td>
+                    <td className="py-3 px-2 text-right font-mono font-semibold text-tinta">
+                      Rp {inv.subtotalWithoutPpn.toLocaleString("id-ID")}
+                    </td>
+                    <td className="py-3 px-2 text-right font-mono font-semibold text-status-perbaikan">
+                      + Rp {inv.ppnAmount.toLocaleString("id-ID")}
+                    </td>
+                    <td className="py-3 px-2 text-right font-mono font-extrabold text-celup-indigo">
+                      Rp {inv.totalWithPpn.toLocaleString("id-ID")}
+                    </td>
+                    <td className="py-3 px-2 text-center font-mono text-[10px]">
+                      {inv.fulfillmentMethod}
+                    </td>
+                    <td className="py-3 px-3 text-right">
+                      <span
+                        className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                          inv.paymentStatus === "PAID"
+                            ? "bg-status-lolos text-white"
+                            : inv.paymentStatus === "DP_PAID"
+                            ? "bg-status-info text-white"
+                            : "bg-status-cacat text-white"
+                        }`}
+                      >
+                        {inv.paymentStatus}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
       )}

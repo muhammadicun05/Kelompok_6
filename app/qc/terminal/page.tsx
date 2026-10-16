@@ -1,36 +1,39 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import Link from "next/link";
 import { 
   CheckCircle2, 
   RotateCcw, 
-  XCircle, 
   Award, 
-  AlertTriangle,
   Sparkles,
   Info,
   Clock,
   Layers,
   ShieldAlert,
-  Check
+  PackageCheck,
+  Wrench,
+  ArrowRight
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { 
   getQcQueue, 
   updateQcQueueItem, 
+  completeRepairAndReturnToQc,
+  getFinishedGoods,
   getLiveQcPoolBonus, 
   incrementLiveQcPoolBonus, 
   getApprovedMassOrders, 
   QcQueueItem 
 } from "@/lib/dataBus";
 
-const DEFECT_CATEGORIES = [
+const REPAIR_CATEGORIES = [
   "Jahitan Melompat / Benang Putus (Nylon Thread)",
-  "Resleting YKK Macet / Gigi Rusak",
-  "Buckle Acetal Longgar / Patah",
-  "Jahitan Tali Bahu Tidak Simetris / Lemah",
-  "Noda Oli Mesin pada Kain Cordura",
-  "Webbing Molle Miring / Jarak Tidak Standar",
+  "Resleting YKK Macet / Perlu Setel Slider",
+  "Buckle Acetal Longgar / Pemasangan Terbalik",
+  "Jahitan Tali Bahu Kurang Presisi / Perlu Bar-Tack Ulang",
+  "Noda Kapur / Benang Sisa Belum Dibersihkan",
+  "Webbing Molle Miring / Jarak Perlu Dirapikan",
   "Lapisan Busa Punggung Bergeser",
 ];
 
@@ -40,13 +43,14 @@ export default function QcTerminalPage() {
   const [productSerial, setProductSerial] = useState<string>("BAG-SNO-1001");
   const [selectedDefect, setSelectedDefect] = useState<string>("");
   const [defectNotes, setDefectNotes] = useState<string>("");
-  const [showDefectPicker, setShowDefectPicker] = useState<boolean>(false);
+  const [showRepairPicker, setShowRepairPicker] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(false);
   const [lastActionMessage, setLastActionMessage] = useState<string | null>(null);
 
-  // FIFO Queue Produk Menunggu QC (QA Pak Harry Point 4)
+  // FIFO Queue Produk Menunggu QC
   const [qcQueue, setQcQueue] = useState<QcQueueItem[]>([]);
   const [activeQueueIndex, setActiveQueueIndex] = useState<number>(0);
+  const [readyForWarehouseCount, setReadyForWarehouseCount] = useState<number>(0);
 
   // QC Bonus Pool State (UAT-03)
   const [poolBonus, setPoolBonus] = useState<number>(600);
@@ -80,7 +84,11 @@ export default function QcTerminalPage() {
         setProductSerial(busQueue[activeQueueIndex]?.serial || busQueue[0].serial);
       }
 
-      // 3. Sync live Pool Bonus
+      // 3. Sync Finished Goods waiting for warehouse intake
+      const fgList = getFinishedGoods();
+      setReadyForWarehouseCount(fgList.filter((f) => f.status === "READY_FOR_WAREHOUSE").length);
+
+      // 4. Sync live Pool Bonus
       const livePool = getLiveQcPoolBonus(600);
       setPoolBonus(livePool);
     } catch (err) {
@@ -95,6 +103,8 @@ export default function QcTerminalPage() {
       const q = getQcQueue();
       setQcQueue(q);
       setPoolBonus(getLiveQcPoolBonus());
+      const fgList = getFinishedGoods();
+      setReadyForWarehouseCount(fgList.filter((f) => f.status === "READY_FOR_WAREHOUSE").length);
       if (q.length > 0 && activeQueueIndex < q.length) {
         setProductSerial(q[activeQueueIndex].serial);
       }
@@ -109,9 +119,9 @@ export default function QcTerminalPage() {
     };
   }, [activeQueueIndex]);
 
-  const handleDecision = async (decision: "PASS" | "REPAIR" | "REJECT") => {
-    if (decision === "REJECT" && !showDefectPicker) {
-      setShowDefectPicker(true);
+  const handleDecision = async (decision: "PASS" | "REPAIR") => {
+    if (decision === "REPAIR" && !showRepairPicker) {
+      setShowRepairPicker(true);
       return;
     }
 
@@ -119,6 +129,7 @@ export default function QcTerminalPage() {
       setLoading(true);
       const currentItem = qcQueue[activeQueueIndex];
       const isReins = currentItem?.isReinspection || false;
+      const chosenCategory = selectedDefect || "Jahitan Tali Bahu Kurang Presisi / Perlu Bar-Tack Ulang";
 
       const res = await fetch("/api/qc/inspect", {
         method: "POST",
@@ -127,7 +138,7 @@ export default function QcTerminalPage() {
           orderId: selectedOrderId || orders[0]?.id,
           productSerialTag: productSerial,
           decision,
-          defectCategory: decision !== "PASS" ? (selectedDefect || "Resleting YKK Macet / Gigi Rusak") : null,
+          defectCategory: decision === "REPAIR" ? chosenCategory : null,
           defectNotes: defectNotes || null,
         }),
       });
@@ -136,35 +147,36 @@ export default function QcTerminalPage() {
       if (data.success) {
         if (decision === "PASS") {
           if (isReins) {
-            setLastActionMessage(
-              `Unit Re-inspeksi ${productSerial} LOLOS QC! Barang diteruskan ke Gudang Jadi (Bonus QC TIDAK digandakan sesuai aturan no-duplicate).`
-            );
             updateQcQueueItem(productSerial, "PASS");
+            setLastActionMessage(
+              `Unit Re-inspeksi ${productSerial} LOLOS QC! Barang otomatis diteruskan ke antrean Barang Jadi Gudang (Bonus QC TIDAK digandakan sesuai aturan no-duplicate).`
+            );
           } else {
             const nextPool = incrementLiveQcPoolBonus(300);
             setPoolBonus(nextPool);
             updateQcQueueItem(productSerial, "PASS");
             setLastActionMessage(
-              `Unit ${productSerial} LOLOS QC! Pool Bonus bertambah +Rp 300 (Total: Rp ${nextPool.toLocaleString("id-ID")})`
+              `Unit ${productSerial} LOLOS QC! Pool Bonus bertambah +Rp 300 (Total: Rp ${nextPool.toLocaleString("id-ID")}) & unit masuk antrean Siap Masuk Gudang Barang Jadi.`
             );
           }
-        } else if (decision === "REPAIR") {
-          updateQcQueueItem(productSerial, "REPAIR");
-          setLastActionMessage(
-            `Unit ${productSerial} dialihkan ke status PERBAIKAN (dikembalikan ke lini jahit). Gaji penjahit TIDAK dipotong.`
-          );
         } else {
-          updateQcQueueItem(productSerial, "REJECT");
+          updateQcQueueItem(productSerial, "REPAIR", {
+            defectCategory: chosenCategory,
+            repairNote: defectNotes || `Perlu perbaikan: ${chosenCategory}`,
+          });
           setLastActionMessage(
-            `Unit ${productSerial} dinyatakan CACAT (${selectedDefect || "Resleting YKK Rusak"}). Barang dialihkan. Gaji penjahit TIDAK dipotong.`
+            `Unit ${productSerial} dialihkan ke status PERBAIKAN (${chosenCategory}) & dikembalikan ke lini jahit. Gaji penjahit TIDAK dipotong.`
           );
         }
 
         // Update local queue view
         const updatedQueue = getQcQueue();
         setQcQueue(updatedQueue);
+        setReadyForWarehouseCount(
+          getFinishedGoods().filter((f) => f.status === "READY_FOR_WAREHOUSE").length
+        );
 
-        setShowDefectPicker(false);
+        setShowRepairPicker(false);
         setSelectedDefect("");
         setDefectNotes("");
 
@@ -184,6 +196,23 @@ export default function QcTerminalPage() {
     }
   };
 
+  const handleCompleteRepair = (serial: string) => {
+    completeRepairAndReturnToQc(
+      serial,
+      "Perbaikan selesai dikerjakan oleh lini produksi, siap diinspeksi ulang (Re-inspeksi)"
+    );
+    const updatedQueue = getQcQueue();
+    setQcQueue(updatedQueue);
+    const idx = updatedQueue.findIndex((i) => i.serial === serial);
+    if (idx !== -1) {
+      setActiveQueueIndex(idx);
+      setProductSerial(serial);
+    }
+    setLastActionMessage(
+      `Perbaikan unit ${serial} SELESAI! Unit kini kembali berada di Antrean Inspeksi QC dengan status Re-inspeksi.`
+    );
+  };
+
   // UAT-03: Simulate 3,000 units PASS (Pool = Rp 900.000 -> Rp 300.000 each)
   const handleSimulateUat03 = async () => {
     if (typeof window !== "undefined") {
@@ -197,6 +226,7 @@ export default function QcTerminalPage() {
   };
 
   const perSupervisorBonus = Math.round(poolBonus / numRecipients);
+  const repairItems = qcQueue.filter((q) => q.status === "REPAIR");
 
   return (
     <div className="space-y-6">
@@ -207,7 +237,7 @@ export default function QcTerminalPage() {
             Fase 5: Terminal Inspeksi QC Produk Utuh
           </h1>
           <p className="text-xs text-teks-sekunder mt-0.5">
-            Inspeksi HANYA pada 1 Produk Jadi Utuh • Akumulasi Pool Bonus QC (FR-5.1 s/d FR-5.2)
+            Inspeksi 1 Produk Tas Utuh (Keputusan: LOLOS atau PERBAIKAN) • Akumulasi Pool Bonus QC
           </p>
         </div>
 
@@ -228,12 +258,31 @@ export default function QcTerminalPage() {
         </div>
       </div>
 
+      {/* Finished Goods Waiting for Warehouse Intake Banner (Adopted from TestLukia-main) */}
+      {readyForWarehouseCount > 0 && (
+        <div className="p-3.5 bg-status-info/10 border border-status-info rounded-work flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+          <div className="flex items-center gap-2 text-celup-indigo">
+            <PackageCheck className="w-4 h-4 text-status-info flex-shrink-0" />
+            <span>
+              Terdapat <strong>{readyForWarehouseCount} unit produk utuh LOLOS QC</strong> yang siap diterima masuk ke Gudang Barang Jadi (<em>Finished Goods Intake</em>).
+            </span>
+          </div>
+          <Link
+            href="/warehouse"
+            className="px-3 py-1.5 bg-celup-indigo text-white font-bold rounded text-xs inline-flex items-center gap-1 self-start sm:self-auto hover:bg-celup-indigo/90"
+          >
+            <span>Buka Gudang Barang Jadi</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </Link>
+        </div>
+      )}
+
       {/* Critical Business Rule Banner (Asumsi #1, #2 & #4) */}
       <div className="p-3 bg-white border-l-4 border-celup-indigo rounded-field shadow-hard flex items-start gap-2.5 text-xs text-tinta">
         <Info className="w-4 h-4 text-celup-indigo flex-shrink-0 mt-0.5" />
         <div>
-          <strong className="text-celup-indigo">Aturan Resmi Bisnis Lukla (Asumsi #1, #2 & #4):</strong>{" "}
-          Inspeksi QC dilakukan <strong>HANYA saat barang sudah jadi 1 tas / ransel utuh</strong> (hasil stasiun assembly perakitan akhir), bukan komponen lepas. Gaji borongan penjahit <strong>TIDAK terpengaruh</strong> oleh hasil QC (*no clawback*). Unit Lolos murni menambah saldo <strong>Pool Bonus QC</strong> untuk supervisor (2 Mandor + 1 Kepala Operasional).
+          <strong className="text-celup-indigo">Aturan Resmi Bisnis Lukla:</strong>{" "}
+          Inspeksi QC dilakukan <strong>HANYA saat barang sudah jadi 1 tas / ransel utuh</strong> (hasil stasiun assembly), dengan 2 keputusan: <strong>LOLOS (Pass)</strong> atau <strong>PERBAIKAN (Repair)</strong>. Gaji borongan penjahit <strong>TIDAK terpengaruh</strong> oleh hasil QC (<em>no clawback</em>). Setiap unit Lolos otomatis menambah <strong>Pool Bonus QC</strong> dan siap diterima ke Gudang Barang Jadi.
         </div>
       </div>
 
@@ -246,7 +295,7 @@ export default function QcTerminalPage() {
         </div>
       )}
 
-      {/* FIFO Inspection Queue List (QA Pak Harry Point 4) */}
+      {/* FIFO Inspection Queue List */}
       <div className="bg-lembar p-5 rounded-work border-2 border-celup-indigo/40 shadow-hard space-y-3">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-garis pb-2">
           <div className="flex items-center gap-2">
@@ -256,11 +305,8 @@ export default function QcTerminalPage() {
             </h2>
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-[11px] font-mono text-teks-sekunder bg-white px-2 py-0.5 rounded border border-garis">
-              QA Fix: Pak Harry #4
-            </span>
-            <span className="text-xs font-bold px-2 py-0.5 rounded bg-kapur text-celup-indigo border border-celup-indigo/30">
-              {qcQueue.filter((q) => q.status === "WAITING" || q.status === "REINSPECTION_PENDING").length} Dalam Antrean
+            <span className="text-xs font-bold px-2.5 py-0.5 rounded bg-kapur text-celup-indigo border border-celup-indigo/30">
+              {qcQueue.filter((q) => q.status === "WAITING" || q.status === "REINSPECTION_PENDING").length} Menunggu Inspeksi
             </span>
           </div>
         </div>
@@ -268,7 +314,7 @@ export default function QcTerminalPage() {
         <div className="space-y-2">
           {qcQueue.map((item, idx) => {
             const isActive = activeQueueIndex === idx;
-            const isDone = item.status === "PASS" || item.status === "REPAIR" || item.status === "REJECT";
+            const isDone = item.status === "PASS" || item.status === "REPAIR";
 
             return (
               <div
@@ -281,7 +327,7 @@ export default function QcTerminalPage() {
                   isActive
                     ? "bg-white border-2 border-celup-indigo shadow-md scale-[1.01]"
                     : isDone
-                    ? "bg-kabut/40 border-garis opacity-70"
+                    ? "bg-kabut/40 border-garis opacity-75"
                     : "bg-white/80 border-garis hover:border-celup-indigo"
                 }`}
               >
@@ -301,10 +347,15 @@ export default function QcTerminalPage() {
                         </span>
                         {item.isReinspection && (
                           <span className="text-[10px] bg-status-perbaikan/20 text-status-perbaikan font-bold px-1.5 py-0.2 rounded border border-status-perbaikan/40">
-                            🔄 Unit Perbaikan Ulang
+                            🔄 Unit Selesai Perbaikan (Re-inspeksi)
                           </span>
                         )}
                       </div>
+                      {item.repairNote && (
+                        <div className="text-[11px] text-status-perbaikan font-medium mt-0.5">
+                          Catatan: {item.repairNote}
+                        </div>
+                      )}
                     </div>
                   </div>
 
@@ -315,19 +366,15 @@ export default function QcTerminalPage() {
                       </span>
                     ) : item.status === "REINSPECTION_PENDING" ? (
                       <span className="text-[11px] px-2 py-1 rounded font-bold bg-status-perbaikan/10 text-status-perbaikan border border-status-perbaikan">
-                        🔄 Re-inspeksi (No Double Bonus)
+                        🔄 Re-inspeksi (Tanpa Bonus Ganda)
                       </span>
                     ) : item.status === "PASS" ? (
                       <span className="text-[11px] px-2 py-1 rounded font-bold bg-status-lolos text-white">
                         ✅ LOLOS (PASS)
                       </span>
-                    ) : item.status === "REPAIR" ? (
-                      <span className="text-[11px] px-2 py-1 rounded font-bold bg-status-perbaikan text-white">
-                        🛠️ PERBAIKAN
-                      </span>
                     ) : (
-                      <span className="text-[11px] px-2 py-1 rounded font-bold bg-status-cacat text-white">
-                        ❌ CACAT (REJECT)
+                      <span className="text-[11px] px-2 py-1 rounded font-bold bg-status-perbaikan text-white">
+                        🛠️ PERBAIKAN (REPAIR)
                       </span>
                     )}
 
@@ -353,7 +400,7 @@ export default function QcTerminalPage() {
         </div>
       </div>
 
-      {/* 3 Giant Inspection Buttons (Section 8.2 of DESIGN_SYSTEM.md) */}
+      {/* 2 Giant Inspection Buttons: LOLOS (PASS) & PERBAIKAN (REPAIR) */}
       <div className="bg-lembar p-5 rounded-work border border-garis shadow-hard space-y-4">
         {qcQueue[activeQueueIndex]?.isReinspection && (
           <div className="p-3 bg-status-perbaikan/10 border-2 border-status-perbaikan rounded-field text-xs text-status-perbaikan font-bold flex items-center gap-2">
@@ -369,12 +416,12 @@ export default function QcTerminalPage() {
             Tag Produk Utuh: <strong className="text-tinta">{productSerial}</strong>
           </span>
           <span className="text-xs text-teks-sekunder">
-            Inspeksi 1 Produk Ransel Utuh (Barang Jadi)
+            Keputusan Terminal QC (Pass / Repair)
           </span>
         </div>
 
-        {/* 3 Giant Buttons: Fixed Order, Minimal 40% height feel, high contrast */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4">
+        {/* 2 Giant Buttons: LOLOS & PERBAIKAN */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Button 1: LOLOS (PASS) */}
           <button
             onClick={() => handleDecision("PASS")}
@@ -382,9 +429,9 @@ export default function QcTerminalPage() {
             className="min-h-[120px] sm:min-h-[140px] rounded-terminal bg-status-lolos text-white p-4 sm:p-6 shadow-hard flex flex-col items-center justify-center gap-2 hover:bg-status-lolos/95 transition-all active:translate-y-1 active:shadow-none"
           >
             <CheckCircle2 className="w-10 h-10 sm:w-12 sm:h-12 stroke-[2.5]" />
-            <span className="text-xl sm:text-2xl font-extrabold tracking-wider">LOLOS</span>
+            <span className="text-xl sm:text-2xl font-extrabold tracking-wider">LOLOS (PASS)</span>
             <span className="text-xs opacity-90 font-medium text-center">
-              +Rp 300 ke Pool Bonus • Masuk Barang Jadi
+              +Rp 300 ke Pool Bonus • Siap Masuk Gudang Barang Jadi
             </span>
           </button>
 
@@ -395,35 +442,22 @@ export default function QcTerminalPage() {
             className="min-h-[120px] sm:min-h-[140px] rounded-terminal bg-status-perbaikan text-white p-4 sm:p-6 shadow-hard flex flex-col items-center justify-center gap-2 hover:bg-status-perbaikan/95 transition-all active:translate-y-1 active:shadow-none"
           >
             <RotateCcw className="w-10 h-10 sm:w-12 sm:h-12 stroke-[2.5]" />
-            <span className="text-xl sm:text-2xl font-extrabold tracking-wider">PERBAIKAN</span>
+            <span className="text-xl sm:text-2xl font-extrabold tracking-wider">PERBAIKAN (REPAIR)</span>
             <span className="text-xs opacity-90 font-medium text-center">
-              Kembali ke Lini Jahit • Tanpa Potong Upah
-            </span>
-          </button>
-
-          {/* Button 3: CACAT (REJECT) */}
-          <button
-            onClick={() => handleDecision("REJECT")}
-            disabled={loading}
-            className="min-h-[120px] sm:min-h-[140px] rounded-terminal bg-status-cacat text-white p-4 sm:p-6 shadow-hard flex flex-col items-center justify-center gap-2 hover:bg-status-cacat/95 transition-all active:translate-y-1 active:shadow-none"
-          >
-            <XCircle className="w-10 h-10 sm:w-12 sm:h-12 stroke-[2.5]" />
-            <span className="text-xl sm:text-2xl font-extrabold tracking-wider">CACAT</span>
-            <span className="text-xs opacity-90 font-medium text-center">
-              Catat Jenis Cacat • Alihkan Rute
+              Kembali ke Lini Jahit untuk Diperbaiki • Tanpa Potong Upah
             </span>
           </button>
         </div>
 
-        {/* Defect Category Chip Selector (Shown if Cacat is clicked) */}
-        {showDefectPicker && (
-          <div className="p-4 bg-white border-2 border-status-cacat rounded-work space-y-3">
+        {/* Repair Category Selector (Shown when PERBAIKAN is clicked) */}
+        {showRepairPicker && (
+          <div className="p-4 bg-white border-2 border-status-perbaikan rounded-work space-y-3">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-status-cacat">
-                Pilih Kategori Cacat (Wajib untuk Analisis Pabrik):
+              <span className="text-xs font-bold text-status-perbaikan">
+                Pilih Titik Temuan yang Perlu Diperbaiki (Wajib untuk Instruksi Lini):
               </span>
               <button
-                onClick={() => setShowDefectPicker(false)}
+                onClick={() => setShowRepairPicker(false)}
                 className="text-xs text-teks-sekunder hover:underline"
               >
                 Batal
@@ -431,14 +465,14 @@ export default function QcTerminalPage() {
             </div>
 
             <div className="flex flex-wrap gap-2">
-              {DEFECT_CATEGORIES.map((cat) => (
+              {REPAIR_CATEGORIES.map((cat) => (
                 <button
                   key={cat}
                   onClick={() => setSelectedDefect(cat)}
                   className={`px-3 py-2 rounded-field text-xs font-semibold border transition-all ${
                     selectedDefect === cat
-                      ? "bg-status-cacat text-white border-status-cacat"
-                      : "bg-kabut text-tinta border-garis hover:border-status-cacat"
+                      ? "bg-status-perbaikan text-white border-status-perbaikan"
+                      : "bg-kabut text-tinta border-garis hover:border-status-perbaikan"
                   }`}
                 >
                   {cat}
@@ -446,25 +480,146 @@ export default function QcTerminalPage() {
               ))}
             </div>
 
-            <div className="flex gap-2 pt-2">
+            <div className="flex flex-col sm:flex-row gap-2 pt-2">
               <input
                 type="text"
-                placeholder="Catatan tambahan (opsional)..."
+                placeholder="Instruksi perbaikan spesifik untuk lini jahit (opsional)..."
                 value={defectNotes}
                 onChange={(e) => setDefectNotes(e.target.value)}
                 className="flex-1 text-xs border border-garis rounded p-2 text-tinta"
               />
               <button
-                onClick={() => handleDecision("REJECT")}
+                onClick={() => handleDecision("REPAIR")}
                 disabled={!selectedDefect}
-                className="px-4 py-2 bg-status-cacat text-white text-xs font-bold rounded shadow-hard disabled:opacity-50"
+                className="px-4 py-2 bg-status-perbaikan text-white text-xs font-bold rounded shadow-hard disabled:opacity-50"
               >
-                Simpan & Tandai Cacat
+                Kirim ke Antrean Perbaikan Lini
               </button>
             </div>
           </div>
         )}
       </div>
+
+      {/* Active Repair Tasks Loop (Close the loop from REPAIR -> REINSPECTION_PENDING) */}
+      {repairItems.length > 0 && (
+        <div className="bg-white p-5 rounded-work border-2 border-status-perbaikan/50 shadow-hard space-y-3">
+          <div className="flex items-center justify-between border-b border-garis pb-2">
+            <div className="flex items-center gap-2">
+              <Wrench className="w-4 h-4 text-status-perbaikan" />
+              <h2 className="text-sm font-bold text-celup-indigo">
+                Daftar Tugas Perbaikan Lini Aktif (Loop Kembali ke QC)
+              </h2>
+            </div>
+            <span className="text-xs font-bold px-2 py-0.5 rounded bg-status-perbaikan/15 text-status-perbaikan">
+              {repairItems.length} Unit Sedang Diperbaiki
+            </span>
+          </div>
+          <div className="space-y-2">
+            {repairItems.map((rep) => (
+              <div
+                key={rep.serial}
+                className="p-3 rounded border border-garis bg-kabut/30 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs"
+              >
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono font-bold text-celup-indigo bg-white px-2 py-0.5 rounded border border-garis">
+                      {rep.serial}
+                    </span>
+                    <span className="font-bold text-tinta">{rep.articleName}</span>
+                  </div>
+                  <p className="text-[11px] text-status-perbaikan font-semibold mt-1">
+                    Temuan: {rep.defectCategory || rep.repairNote || "Perbaikan jahitan komponen"}
+                  </p>
+                </div>
+                <button
+                  onClick={() => handleCompleteRepair(rep.serial)}
+                  className="px-3 py-1.5 bg-celup-indigo text-white font-bold rounded text-xs hover:bg-celup-indigo/90 shadow-sm whitespace-nowrap"
+                >
+                  ✅ Selesai Diperbaiki → Kembalikan ke Antrean QC
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Pool Bonus QC & 3-Way Split Panel (FR-10.3 & UAT-03) */}
+      <div className="bg-lembar p-5 rounded-work border border-garis shadow-hard space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b border-garis pb-3">
+          <div className="flex items-center gap-2">
+            <Award className="w-5 h-5 text-status-lolos" />
+            <div>
+              <h2 className="text-sm font-bold text-celup-indigo">
+                Akumulasi Pool Bonus QC & Pembagian 3-Arah (FR-10.3)
+              </h2>
+              <p className="text-xs text-teks-sekunder">
+                Default dibagi rata (33,33%) kepada 2 Mandor + 1 Kepala Operasional
+              </p>
+            </div>
+          </div>
+
+          <button
+            onClick={handleSimulateUat03}
+            className="px-3 py-1.5 rounded-field bg-kapur text-celup-indigo font-bold text-xs border border-celup-indigo/30 hover:bg-kapur/80 flex items-center gap-1.5 self-start sm:self-auto"
+          >
+            <Sparkles className="w-3.5 h-3.5" />
+            <span>Simulasi UAT-03 (3.000 Unit Lolos)</span>
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-center">
+          {/* Total Pool Card */}
+          <div className="bg-white p-4 rounded-field border border-garis">
+            <span className="text-xs text-teks-sekunder block">Total Saldo Pool Bonus QC</span>
+            <span className="text-2xl font-extrabold text-status-lolos font-mono tabular-nums mt-1 block">
+              Rp {poolBonus.toLocaleString("id-ID")}
+            </span>
+            <span className="text-[11px] text-teks-sekunder mt-1 block">
+              Tarif: Rp 300 / unit utuh Lolos
+            </span>
+          </div>
+
+          {/* Recipient 1: Kepala Operasional */}
+          <div className="bg-white p-4 rounded-field border border-garis">
+            <span className="text-xs font-semibold text-celup-indigo block">
+              1. Pak Jajang (Kepala Ops)
+            </span>
+            <span className="text-xl font-bold text-tinta font-mono tabular-nums mt-1 block">
+              Rp {perSupervisorBonus.toLocaleString("id-ID")}
+            </span>
+            <span className="text-[11px] text-status-lolos font-semibold mt-1 block">
+              Porsi 1/{numRecipients} ({(100 / numRecipients).toFixed(1)}%)
+            </span>
+          </div>
+
+          {/* Recipient 2: Mandor Lini A */}
+          <div className="bg-white p-4 rounded-field border border-garis">
+            <span className="text-xs font-semibold text-celup-indigo block">
+              2. Kang Ujang (Mandor Lini A)
+            </span>
+            <span className="text-xl font-bold text-tinta font-mono tabular-nums mt-1 block">
+              Rp {perSupervisorBonus.toLocaleString("id-ID")}
+            </span>
+            <span className="text-[11px] text-status-lolos font-semibold mt-1 block">
+              Porsi 1/{numRecipients} ({(100 / numRecipients).toFixed(1)}%)
+            </span>
+          </div>
+
+          {/* Recipient 3: Mandor Lini B */}
+          <div className="bg-white p-4 rounded-field border border-garis">
+            <span className="text-xs font-semibold text-celup-indigo block">
+              3. Teh Yeti (Mandor Lini B)
+            </span>
+            <span className="text-xl font-bold text-tinta font-mono tabular-nums mt-1 block">
+              Rp {perSupervisorBonus.toLocaleString("id-ID")}
+            </span>
+            <span className="text-[11px] text-status-lolos font-semibold mt-1 block">
+              Porsi 1/{numRecipients} ({(100 / numRecipients).toFixed(1)}%)
+            </span>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
+

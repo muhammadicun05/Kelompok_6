@@ -9,11 +9,20 @@ import {
   Check, 
   FileCheck, 
   ArrowRight,
-  Plus
+  Plus,
+  BookOpen,
+  RefreshCw
 } from "lucide-react";
 import { ThreadEdge, ClientTag } from "@/components/Design/ThreadEdge";
 
-import { savePendingMassOrder, MassOrder } from "@/lib/dataBus";
+import { 
+  savePendingMassOrder, 
+  approveMassOrder,
+  getProductCatalog, 
+  MassOrder, 
+  ProductCatalogItem 
+} from "@/lib/dataBus";
+
 
 interface VersionItem {
   version: number;
@@ -156,6 +165,20 @@ export default function SamplesPage() {
   const [ownerApprovalStatus, setOwnerApprovalStatus] = useState<"PENDING" | "APPROVED" | "REJECTED">("PENDING");
   const [isClientAccountActive, setIsClientAccountActive] = useState<boolean>(false);
   const [selectedScheme, setSelectedScheme] = useState("FULL_PACKAGE");
+  const [targetQtyInput, setTargetQtyInput] = useState<number>(500);
+  const [sellingPriceInput, setSellingPriceInput] = useState<number>(245000);
+  const [catalogList, setCatalogList] = useState<ProductCatalogItem[]>([]);
+
+  useEffect(() => {
+    const syncCatalog = () => setCatalogList(getProductCatalog());
+    syncCatalog();
+    window.addEventListener("lukla_bus_update", syncCatalog);
+    window.addEventListener("storage", syncCatalog);
+    return () => {
+      window.removeEventListener("lukla_bus_update", syncCatalog);
+      window.removeEventListener("storage", syncCatalog);
+    };
+  }, []);
 
   const handleConvertToMassOrder = () => {
     const dynamicNum = activeSample.id === "SNO-HD-01" ? "ORD-2026-004" : `ORD-2026-${Math.floor(100 + Math.random() * 900)}`;
@@ -166,8 +189,9 @@ export default function SamplesPage() {
       clientName: activeSample.clientName,
       clientCode: activeSample.clientCode,
       article: activeSample.articleName,
-      targetQty: 500,
+      targetQty: Number(targetQtyInput) || 500,
       completedQty: 0,
+      sellingPricePerUnit: Number(sellingPriceInput) || 245000,
       inheritedVersion: "v2 (Approved)",
       inheritedSmv: "18m 30s",
       inheritedFabric: "1.45 m Cordura 1000D / pcs",
@@ -181,8 +205,34 @@ export default function SamplesPage() {
     // Save draft order to data bus
     savePendingMassOrder(orderData);
 
-    alert(`Draft Pesanan Massal ${orderData.orderNumber} (${orderData.article}) berhasil diterbitkan oleh Sampler! Terkoneksi secara real-time ke Antrean Approval Owner di Dashboard.`);
+    alert(`Draft Pesanan Massal ${orderData.orderNumber} (${orderData.article} — ${orderData.targetQty} unit @ Rp ${orderData.sellingPricePerUnit?.toLocaleString("id-ID")}/unit) berhasil diterbitkan oleh Sampler! Terkoneksi secara real-time ke Antrean Approval Owner di Dashboard.`);
   };
+
+  const handleReorderFromCatalog = (catItem: ProductCatalogItem) => {
+    const reorderNum = `ORD-2026-${Math.floor(100 + Math.random() * 900)}`;
+    const reorderData: MassOrder = {
+      id: `ord-${Date.now()}`,
+      orderNumber: reorderNum,
+      scheme: catItem.defaultScheme,
+      clientName: catItem.clientName,
+      clientCode: catItem.clientCode,
+      article: catItem.articleName,
+      targetQty: 500,
+      completedQty: 0,
+      sellingPricePerUnit: catItem.defaultSellingPricePerUnit,
+      productCatalogId: catItem.id,
+      inheritedVersion: `Katalog (${catItem.articleCode})`,
+      inheritedSmv: catItem.smvSummary,
+      inheritedFabric: catItem.bomSummary,
+      status: "PENDING_OWNER_APPROVAL",
+      createdAt: new Date().toLocaleString("id-ID", { dateStyle: "medium", timeStyle: "short" }),
+    };
+    setConvertedOrder(reorderData);
+    setOwnerApprovalStatus("PENDING");
+    savePendingMassOrder(reorderData);
+    alert(`Pesanan Ulang (Re-Order) ${reorderNum} untuk produk katalog "${catItem.articleName}" (${catItem.articleCode}) berhasil dibuat! Langsung melewati fase sampel menuju Persetujuan Owner.`);
+  };
+
 
   return (
     <div className="space-y-6">
@@ -478,29 +528,57 @@ export default function SamplesPage() {
                   </p>
 
                   {ver.isApproved && (
-                    <div className="mt-4 pt-3 border-t border-garis flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-kabut/40 p-3 rounded">
-                      <div className="flex flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-2 w-full sm:w-auto">
-                        <label className="text-xs font-semibold text-tinta whitespace-nowrap">
-                          Skema Maklon:
-                        </label>
-                        <select
-                          value={selectedScheme}
-                          onChange={(e) => setSelectedScheme(e.target.value)}
-                          className="w-full sm:w-auto text-xs border border-garis bg-white px-2.5 py-1.5 rounded text-celup-indigo font-semibold"
-                        >
-                          <option value="CMT">CMT (Titipan 100%)</option>
-                          <option value="SEMI_CMT">SEMI_CMT (Kain Klien + PO Aksesoris)</option>
-                          <option value="FULL_PACKAGE">FULL_PACKAGE (100% Lukla)</option>
-                        </select>
+                    <div className="mt-4 pt-3 border-t border-garis space-y-3 bg-kabut/40 p-3 rounded">
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-xs">
+                        <div>
+                          <label className="font-semibold text-tinta block mb-1">
+                            Skema Maklon:
+                          </label>
+                          <select
+                            value={selectedScheme}
+                            onChange={(e) => setSelectedScheme(e.target.value)}
+                            className="w-full text-xs border border-garis bg-white px-2.5 py-1.5 rounded text-celup-indigo font-semibold"
+                          >
+                            <option value="CMT">CMT (Titipan 100%)</option>
+                            <option value="SEMI_CMT">SEMI_CMT (Kain Klien + PO Aksesoris)</option>
+                            <option value="FULL_PACKAGE">FULL_PACKAGE (100% Lukla)</option>
+                          </select>
+                        </div>
+
+                        <div>
+                          <label className="font-semibold text-tinta block mb-1">
+                            Target Kuantitas (Unit):
+                          </label>
+                          <input
+                            type="number"
+                            value={targetQtyInput}
+                            onChange={(e) => setTargetQtyInput(Number(e.target.value))}
+                            className="w-full text-xs font-mono font-bold border border-garis bg-white px-2.5 py-1.5 rounded text-celup-indigo"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="font-semibold text-tinta block mb-1">
+                            Harga Jual / Unit (Rp):
+                          </label>
+                          <input
+                            type="number"
+                            value={sellingPriceInput}
+                            onChange={(e) => setSellingPriceInput(Number(e.target.value))}
+                            className="w-full text-xs font-mono font-bold border border-garis bg-white px-2.5 py-1.5 rounded text-celup-indigo"
+                          />
+                        </div>
                       </div>
 
-                      <button
-                        onClick={handleConvertToMassOrder}
-                        className="w-full sm:w-auto px-4 py-2 bg-celup-indigo text-white text-xs font-bold rounded-field shadow-hard hover:bg-celup-indigo/90 flex items-center justify-center gap-1.5 transition-all active:translate-y-0.5 whitespace-nowrap"
-                      >
-                        <span>Jadikan Pesanan Massal</span>
-                        <ArrowRight className="w-3.5 h-3.5 flex-shrink-0" />
-                      </button>
+                      <div className="flex justify-end">
+                        <button
+                          onClick={handleConvertToMassOrder}
+                          className="w-full sm:w-auto px-4 py-2 bg-celup-indigo text-white text-xs font-bold rounded-field shadow-hard hover:bg-celup-indigo/90 flex items-center justify-center gap-1.5 transition-all active:translate-y-0.5 whitespace-nowrap"
+                        >
+                          <span>Jadikan Pesanan Massal</span>
+                          <ArrowRight className="w-3.5 h-3.5 flex-shrink-0" />
+                        </button>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -560,7 +638,9 @@ export default function SamplesPage() {
                   <button
                     onClick={() => {
                       setOwnerApprovalStatus("APPROVED");
-                      alert(`Order ${convertedOrder.orderNumber} telah disetujui oleh Owner! Tahap persiapan material dan produksi diizinkan dimulai.`);
+                      approveMassOrder(convertedOrder.orderNumber);
+                      setCatalogList(getProductCatalog());
+                      alert(`Order ${convertedOrder.orderNumber} telah disetujui oleh Owner! Produk otomatis masuk Katalog Produk, PO Bahan ter-generate dari BOM, dan pesanan aktif di Gudang serta Lini Produksi.`);
                     }}
                     className={`flex-1 py-1.5 px-3 rounded font-bold text-xs transition-all ${
                       ownerApprovalStatus === "APPROVED"
@@ -711,6 +791,71 @@ export default function SamplesPage() {
           </div>
         </div>
       </div>
+
+      {/* Katalog Produk Terdaftar (Product Catalog & Fitur Pesan Ulang / Re-Order — Diadopsi dari TestLukia-main) */}
+      <div className="bg-lembar p-5 rounded-work border border-garis shadow-hard space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-garis pb-3">
+          <div className="flex items-center gap-2">
+            <BookOpen className="w-5 h-5 text-celup-indigo" />
+            <div>
+              <h2 className="text-sm font-bold text-celup-indigo">
+                Katalog Produk Terdaftar (Master Product Catalog &amp; Pesan Ulang / Re-Order)
+              </h2>
+              <p className="text-xs text-teks-sekunder">
+                Produk otomatis masuk katalog setelah pesanan pertama disetujui Owner. Klik &quot;Pesan Ulang&quot; untuk membuat order baru tanpa ulang studi waktu sampel.
+              </p>
+            </div>
+          </div>
+          <span className="text-xs font-mono font-bold px-2.5 py-1 rounded bg-white border border-garis text-celup-indigo self-start sm:self-auto">
+            {catalogList.length} Produk di Katalog
+          </span>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full text-xs border border-garis bg-white">
+            <thead className="bg-kabut text-celup-indigo font-bold border-b border-garis">
+              <tr>
+                <th className="p-2.5 text-left">Kode Artikel</th>
+                <th className="p-2.5 text-left">Nama Produk / Ransel</th>
+                <th className="p-2.5 text-left">Klien</th>
+                <th className="p-2.5 text-left">Skema Default</th>
+                <th className="p-2.5 text-right">Harga / Unit</th>
+                <th className="p-2.5 text-left">SMV &amp; BOM Warisan</th>
+                <th className="p-2.5 text-right">Aksi Re-Order</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-garis">
+              {catalogList.map((cat) => (
+                <tr key={cat.id} className="hover:bg-kabut/30">
+                  <td className="p-2.5 font-mono font-bold text-celup-indigo">{cat.articleCode}</td>
+                  <td className="p-2.5 font-bold text-tinta">{cat.articleName}</td>
+                  <td className="p-2.5">
+                    <ClientTag clientCode={cat.clientCode} clientName={cat.clientName} />
+                  </td>
+                  <td className="p-2.5 font-mono text-teks-sekunder">{cat.defaultScheme}</td>
+                  <td className="p-2.5 text-right font-mono font-bold text-tinta">
+                    Rp {cat.defaultSellingPricePerUnit.toLocaleString("id-ID")}
+                  </td>
+                  <td className="p-2.5 text-[11px] text-teks-sekunder">
+                    <div><strong>SMV:</strong> {cat.smvSummary}</div>
+                    <div className="truncate max-w-[240px]"><strong>BOM:</strong> {cat.bomSummary}</div>
+                  </td>
+                  <td className="p-2.5 text-right">
+                    <button
+                      onClick={() => handleReorderFromCatalog(cat)}
+                      className="px-3 py-1.5 bg-celup-indigo text-white font-bold rounded text-[11px] hover:bg-celup-indigo/90 inline-flex items-center gap-1 shadow-sm whitespace-nowrap"
+                    >
+                      <RefreshCw className="w-3 h-3" />
+                      <span>Pesan Ulang</span>
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   );
 }
+

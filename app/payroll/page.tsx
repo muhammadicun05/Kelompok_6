@@ -19,10 +19,22 @@ import {
   X
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
-import { getApprovedMassOrders, getLiveQcPoolBonus, MassOrder } from "@/lib/dataBus";
+import { 
+  getApprovedMassOrders, 
+  getLiveQcPoolBonus, 
+  MassOrder,
+  getPurchaseOrders,
+  reviewPurchaseOrder,
+  getIssuedInvoices,
+  saveIssuedInvoice,
+  getFinishedGoods,
+  PurchaseOrderRecord,
+  IssuedInvoiceRecord,
+  FinishedGoodRecord
+} from "@/lib/dataBus";
 
 export default function PayrollPage() {
-  const [activeTab, setActiveTab] = useState<"PAYROLL" | "INVOICE">("PAYROLL");
+  const [activeTab, setActiveTab] = useState<"PAYROLL" | "INVOICE" | "PO_REVIEW">("PAYROLL");
 
   // Payroll State
   const [mealPct, setMealPct] = useState<number>(12); // Flexible 10-15% slider
@@ -97,21 +109,26 @@ export default function PayrollPage() {
   });
   const [loading, setLoading] = useState<boolean>(false);
 
-  // Invoice State (BRD v1.5 Section 8.8)
+  // Invoice State (BRD v1.5 Section 8.8 + PPN 11% Breakdown)
   const [selectedOrder, setSelectedOrder] = useState<string>("ORD-2026-004");
   const [invoiceNumber, setInvoiceNumber] = useState<string>("INV-2026-004");
   const [paymentScheme, setPaymentScheme] = useState<"TERMIN_50_50" | "NET_30" | "FULL">("TERMIN_50_50");
   const [paymentStatus, setPaymentStatus] = useState<"UNPAID" | "DP_PAID" | "PAID">("DP_PAID");
+  const [fulfillmentMethod, setFulfillmentMethod] = useState<"SHIPPING" | "PICKUP">("SHIPPING");
   const [invoiceDate, setInvoiceDate] = useState<string>("2026-10-14");
   const [dueDate, setDueDate] = useState<string>("2026-10-28");
 
-  // Dynamic Approved Orders & Live QC Bonus
+  // Dynamic Approved Orders, Live QC Bonus, Issued Invoices, POs, & Finished Goods
   const [approvedOrdersList, setApprovedOrdersList] = useState<MassOrder[]>([]);
+  const [issuedInvoices, setIssuedInvoices] = useState<IssuedInvoiceRecord[]>([]);
+  const [purchaseOrders, setPurchaseOrders] = useState<PurchaseOrderRecord[]>([]);
+  const [finishedGoods, setFinishedGoods] = useState<FinishedGoodRecord[]>([]);
 
   // Invoice mock profiles + dynamically approved mass orders
   const baseCatalog: Record<string, any> = {
     "ORD-2026-004": {
       orderId: "ORD-2026-004",
+      clientCode: "SNOHUND",
       clientName: "Snøhund (Internal Brand)",
       clientEmail: "ops@snohund.co",
       clientAddress: "Bandung, Jawa Barat",
@@ -125,8 +142,9 @@ export default function PayrollPage() {
     },
     "ORD-2026-003": {
       orderId: "ORD-2026-003",
-      clientName: "PT Bintang Tekstil Mandiri",
-      clientEmail: "procurement@bintangtekstil.id",
+      clientCode: "KLIEN_A",
+      clientName: "PT Bandung Apparel",
+      clientEmail: "procurement@bandungapparel.id",
       clientAddress: "Kawasan Industri Cimahi, Jawa Barat",
       articleName: "Urban Commuter Roll-Top Backpack 25L",
       scheme: "CMT",
@@ -143,6 +161,7 @@ export default function PayrollPage() {
     const key = ord.orderNumber || ord.id;
     dynamicCatalog[key] = {
       orderId: key,
+      clientCode: ord.clientCode || "KLIEN_A",
       clientName: ord.clientName,
       clientEmail: "procurement@klien.id",
       clientAddress: "Bandung, Jawa Barat",
@@ -162,10 +181,20 @@ export default function PayrollPage() {
   const sewingTotal = currentOrder.quantity * currentOrder.sewingRate;
   const finishingTotal = currentOrder.quantity * currentOrder.finishingRate;
   const materialsTotal = currentOrder.materialsCharge;
-  const grandTotal = cuttingTotal + sewingTotal + finishingTotal + materialsTotal;
 
-  const dpAmount = Math.round(grandTotal * 0.5);
-  const remainingAmount = grandTotal - dpAmount;
+  // Explicit PPN 11% Breakdown (Decision #4)
+  const subtotalWithoutPpn = cuttingTotal + sewingTotal + finishingTotal + materialsTotal;
+  const ppnRate = 11;
+  const ppnAmount = Math.round(subtotalWithoutPpn * (ppnRate / 100));
+  const totalWithPpn = subtotalWithoutPpn + ppnAmount;
+
+  const dpAmount = Math.round(totalWithPpn * 0.5);
+  const remainingAmount = totalWithPpn - dpAmount;
+
+  // Check Finished Goods Stored for selectedOrder
+  const storedFinishedQty = finishedGoods.filter(
+    (fg) => fg.orderNumber === currentOrder.orderId && fg.status === "STORED"
+  ).length;
 
   const calculatePayroll = async () => {
     try {
@@ -216,6 +245,9 @@ export default function PayrollPage() {
   const syncBusData = () => {
     const liveApproved = getApprovedMassOrders();
     setApprovedOrdersList(liveApproved);
+    setIssuedInvoices(getIssuedInvoices());
+    setPurchaseOrders(getPurchaseOrders());
+    setFinishedGoods(getFinishedGoods());
 
     const liveBonus = getLiveQcPoolBonus();
     // Default 2 Mandors + 1 Kepala Ops = 3-way split (FR-10.3)
@@ -304,15 +336,15 @@ export default function PayrollPage() {
       <div className="border-b border-garis pb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-celup-indigo tracking-tight">
-            Workspace Payroll & Penagihan B2B
+            Workspace Payroll, Invoice (PPN 11%) & Finance PO
           </h1>
           <p className="text-xs text-teks-sekunder mt-0.5">
-            Gaji Borongan Sabtu • Uang Makan 10–15% Tunai • Bonus QC 3-Arah • Penerbitan Invoice B2B
+            Gaji Borongan Sabtu • Uang Makan 10–15% Tunai • Bonus QC 3-Arah • Invoice B2B (Tanpa PPN + PPN 11% + Total) • Review PO Bahan
           </p>
         </div>
 
         {/* Work Station Tabs */}
-        <div className="flex bg-kabut p-1 rounded-field border border-garis">
+        <div className="flex flex-wrap bg-kabut p-1 rounded-field border border-garis gap-1">
           <button
             onClick={() => setActiveTab("PAYROLL")}
             className={`px-3 py-1.5 text-xs font-bold rounded flex items-center gap-1.5 transition-all ${
@@ -333,7 +365,23 @@ export default function PayrollPage() {
             }`}
           >
             <FileText className="w-3.5 h-3.5" />
-            <span>2. Penerbitan Invoice Resmi (B2B Maklon)</span>
+            <span>2. Penerbitan Invoice B2B (Rincian PPN 11%)</span>
+          </button>
+          <button
+            onClick={() => setActiveTab("PO_REVIEW")}
+            className={`px-3 py-1.5 text-xs font-bold rounded flex items-center gap-1.5 transition-all ${
+              activeTab === "PO_REVIEW"
+                ? "bg-celup-indigo text-white shadow-sm"
+                : "text-teks-sekunder hover:text-celup-indigo"
+            }`}
+          >
+            <CheckCircle2 className="w-3.5 h-3.5" />
+            <span>3. Review PO Bahan Baku</span>
+            {purchaseOrders.filter((p) => p.status === "PENDING").length > 0 && (
+              <span className="px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-kapur text-celup-indigo border border-celup-indigo">
+                {purchaseOrders.filter((p) => p.status === "PENDING").length}
+              </span>
+            )}
           </button>
         </div>
       </div>
@@ -763,6 +811,41 @@ export default function PayrollPage() {
               </select>
             </div>
 
+            {/* Metode Serah Terima & Status Kelayakan Gudang Barang Jadi */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-tinta">Metode Serah Terima Barang Jadi:</label>
+              <div className="grid grid-cols-2 gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => setFulfillmentMethod("SHIPPING")}
+                  className={`py-2 text-[11px] font-bold rounded border transition-all ${
+                    fulfillmentMethod === "SHIPPING"
+                      ? "bg-celup-indigo text-white border-celup-indigo shadow-sm"
+                      : "bg-white text-teks-sekunder border-garis hover:border-celup-indigo"
+                  }`}
+                >
+                  Dikirim Ekspedisi (Shipping)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFulfillmentMethod("PICKUP")}
+                  className={`py-2 text-[11px] font-bold rounded border transition-all ${
+                    fulfillmentMethod === "PICKUP"
+                      ? "bg-celup-indigo text-white border-celup-indigo shadow-sm"
+                      : "bg-white text-teks-sekunder border-garis hover:border-celup-indigo"
+                  }`}
+                >
+                  Diambil Klien (Pickup)
+                </button>
+              </div>
+              <div className="p-2 bg-white rounded border border-garis flex items-center justify-between text-[11px]">
+                <span className="text-teks-sekunder font-medium">Stok Barang Jadi (`STORED`):</span>
+                <span className="font-mono font-bold text-status-lolos">
+                  {storedFinishedQty > 0 ? `${storedFinishedQty} pcs Siap Kirim` : "Siap Tagih (Verifikasi QC)"}
+                </span>
+              </div>
+            </div>
+
             {/* Status Pembayaran */}
             <div className="space-y-1.5">
               <label className="text-xs font-bold text-tinta">Status Pembayaran:</label>
@@ -830,207 +913,409 @@ export default function PayrollPage() {
           </div>
 
           {/* Right Column: Printable Official Invoice Sheet (8 cols) */}
-          <div className="lg:col-span-8 bg-white p-6 sm:p-8 rounded-work border border-garis shadow-hard space-y-6 print:m-0 print:p-0 print:border-none print:shadow-none">
-            {/* Invoice Header */}
-            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between border-b-2 border-celup-indigo pb-5 gap-4">
-              <div className="space-y-1">
-                <img src="/lukla-logo.png" alt="Lukla Manufacturing" className="h-10 w-auto object-contain mb-2" />
-                <h3 className="text-lg font-extrabold text-celup-indigo tracking-tight">
-                  PT LUKLA MANUFAKTUR INDONESIA
-                </h3>
-                <p className="text-xs text-teks-sekunder">
-                  Jl. Raya Soreang - Ciwidey KM 18, Bandung 40973
-                </p>
-                <p className="text-xs text-teks-sekunder font-mono">
-                  NPWP: 81.234.567.8-445.000 • ops@lukla.id
-                </p>
-              </div>
+          <div className="lg:col-span-8 space-y-6">
+            <div className="bg-white p-6 sm:p-8 rounded-work border border-garis shadow-hard space-y-6 print:m-0 print:p-0 print:border-none print:shadow-none">
+              {/* Invoice Header */}
+              <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between border-b-2 border-celup-indigo pb-5 gap-4">
+                <div className="space-y-1">
+                  <img src="/lukla-logo.png" alt="Lukla Manufacturing" className="h-10 w-auto object-contain mb-2" />
+                  <h3 className="text-lg font-extrabold text-celup-indigo tracking-tight">
+                    PT LUKLA MANUFAKTUR INDONESIA
+                  </h3>
+                  <p className="text-xs text-teks-sekunder">
+                    Jl. Raya Soreang - Ciwidey KM 18, Bandung 40973
+                  </p>
+                  <p className="text-xs text-teks-sekunder font-mono">
+                    NPWP: 81.234.567.8-445.000 • ops@lukla.id
+                  </p>
+                </div>
 
-              <div className="sm:text-right space-y-1">
-                <span className="text-xs font-mono font-bold uppercase tracking-wider text-teks-sekunder block">
-                  FAKTUR TAGIHAN RESMI (INVOICE)
-                </span>
-                <span className="text-xl font-mono font-extrabold text-celup-indigo block">
-                  {invoiceNumber}
-                </span>
-                <div className="inline-block mt-2">
-                  {paymentStatus === "PAID" && (
-                    <span className="px-3 py-1 bg-status-lolos/10 text-status-lolos border border-status-lolos rounded-full text-xs font-extrabold uppercase">
-                      LUNAS
-                    </span>
-                  )}
-                  {paymentStatus === "DP_PAID" && (
-                    <span className="px-3 py-1 bg-status-info/10 text-status-info border border-status-info rounded-full text-xs font-extrabold uppercase">
-                      DP 50% DITERIMA
-                    </span>
-                  )}
-                  {paymentStatus === "UNPAID" && (
-                    <span className="px-3 py-1 bg-status-cacat/10 text-status-cacat border border-status-cacat rounded-full text-xs font-extrabold uppercase">
-                      BELUM DIBAYAR
-                    </span>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Bill To & Order Meta */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-              <div className="bg-kabut/40 p-3.5 rounded border border-garis space-y-1">
-                <span className="text-[10px] uppercase font-bold text-teks-sekunder tracking-wider block">
-                  DITUJUKAN KEPADA (KLIEN):
-                </span>
-                <div className="text-sm font-bold text-celup-indigo">{currentOrder.clientName}</div>
-                <div className="text-teks-sekunder">{currentOrder.clientAddress}</div>
-                <div className="text-teks-sekunder font-mono">{currentOrder.clientEmail}</div>
-              </div>
-
-              <div className="bg-kabut/40 p-3.5 rounded border border-garis space-y-1">
-                <span className="text-[10px] uppercase font-bold text-teks-sekunder tracking-wider block">
-                  INFORMASI PESANAN:
-                </span>
-                <div className="flex justify-between">
-                  <span className="text-teks-sekunder">No. Pesanan:</span>
-                  <span className="font-mono font-bold text-celup-indigo">{currentOrder.orderId}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-teks-sekunder">Skema Maklon:</span>
-                  <span className="font-mono font-bold">{currentOrder.scheme}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-teks-sekunder">Tgl Terbit / Jatuh Tempo:</span>
-                  <span className="font-mono">{invoiceDate} / {dueDate}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-teks-sekunder">Termin:</span>
-                  <span className="font-semibold text-celup-indigo">
-                    {paymentScheme === "TERMIN_50_50" && "DP 50% / Pelunasan 50%"}
-                    {paymentScheme === "NET_30" && "Net 30 Hari"}
-                    {paymentScheme === "FULL" && "100% Di Muka"}
+                <div className="sm:text-right space-y-1">
+                  <span className="text-xs font-mono font-bold uppercase tracking-wider text-teks-sekunder block">
+                    FAKTUR TAGIHAN RESMI (INVOICE PPN 11%)
                   </span>
+                  <span className="text-xl font-mono font-extrabold text-celup-indigo block">
+                    {invoiceNumber}
+                  </span>
+                  <div className="inline-block mt-2">
+                    {paymentStatus === "PAID" && (
+                      <span className="px-3 py-1 bg-status-lolos/10 text-status-lolos border border-status-lolos rounded-full text-xs font-extrabold uppercase">
+                        LUNAS
+                      </span>
+                    )}
+                    {paymentStatus === "DP_PAID" && (
+                      <span className="px-3 py-1 bg-status-info/10 text-status-info border border-status-info rounded-full text-xs font-extrabold uppercase">
+                        DP 50% DITERIMA
+                      </span>
+                    )}
+                    {paymentStatus === "UNPAID" && (
+                      <span className="px-3 py-1 bg-status-cacat/10 text-status-cacat border border-status-cacat rounded-full text-xs font-extrabold uppercase">
+                        BELUM DIBAYAR
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Bill To & Order Meta */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                <div className="bg-kabut/40 p-3.5 rounded border border-garis space-y-1">
+                  <span className="text-[10px] uppercase font-bold text-teks-sekunder tracking-wider block">
+                    DITUJUKAN KEPADA (KLIEN):
+                  </span>
+                  <div className="text-sm font-bold text-celup-indigo">{currentOrder.clientName}</div>
+                  <div className="text-teks-sekunder">{currentOrder.clientAddress}</div>
+                  <div className="text-teks-sekunder font-mono">{currentOrder.clientEmail}</div>
+                </div>
+
+                <div className="bg-kabut/40 p-3.5 rounded border border-garis space-y-1">
+                  <span className="text-[10px] uppercase font-bold text-teks-sekunder tracking-wider block">
+                    INFORMASI PESANAN & SERAH TERIMA:
+                  </span>
+                  <div className="flex justify-between">
+                    <span className="text-teks-sekunder">No. Pesanan:</span>
+                    <span className="font-mono font-bold text-celup-indigo">{currentOrder.orderId}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-teks-sekunder">Skema Maklon:</span>
+                    <span className="font-mono font-bold">{currentOrder.scheme}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-teks-sekunder">Metode Serah Terima:</span>
+                    <span className="font-mono font-bold text-status-lolos">
+                      {fulfillmentMethod === "SHIPPING" ? "SHIPPING (Ekspedisi)" : "PICKUP (Diambil Klien)"}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-teks-sekunder">Tgl Terbit / Jatuh Tempo:</span>
+                    <span className="font-mono">{invoiceDate} / {dueDate}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Itemized Table */}
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs border border-garis">
+                  <thead className="bg-kabut border-b border-garis text-celup-indigo font-bold">
+                    <tr>
+                      <th className="py-2.5 px-3 text-left">Deskripsi Layanan / Item Produksi</th>
+                      <th className="py-2.5 px-3 text-center">Volume</th>
+                      <th className="py-2.5 px-3 text-right">Tarif Satuan</th>
+                      <th className="py-2.5 px-3 text-right">Subtotal (Tanpa PPN)</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-garis">
+                    <tr>
+                      <td className="py-2.5 px-3">
+                        <div className="font-bold text-tinta">Jasa Cutting (Meja Potong Kain)</div>
+                        <div className="text-[11px] text-teks-sekunder">
+                          {currentOrder.articleName} • Presisi pola & bundle komponen
+                        </div>
+                      </td>
+                      <td className="py-2.5 px-3 text-center font-mono">{currentOrder.quantity} pcs</td>
+                      <td className="py-2.5 px-3 text-right font-mono">Rp {currentOrder.cuttingRate.toLocaleString("id-ID")}</td>
+                      <td className="py-2.5 px-3 text-right font-mono font-bold">Rp {cuttingTotal.toLocaleString("id-ID")}</td>
+                    </tr>
+                    <tr>
+                      <td className="py-2.5 px-3">
+                        <div className="font-bold text-tinta">Jasa Jahit & Assembly (Lini ±70 Mesin & FIFO Assembly)</div>
+                        <div className="text-[11px] text-teks-sekunder">
+                          Penggabungan komponen per 30 menit & verifikasi mandor
+                        </div>
+                      </td>
+                      <td className="py-2.5 px-3 text-center font-mono">{currentOrder.quantity} pcs</td>
+                      <td className="py-2.5 px-3 text-right font-mono">Rp {currentOrder.sewingRate.toLocaleString("id-ID")}</td>
+                      <td className="py-2.5 px-3 text-right font-mono font-bold">Rp {sewingTotal.toLocaleString("id-ID")}</td>
+                    </tr>
+                    {materialsTotal > 0 && (
+                      <tr>
+                        <td className="py-2.5 px-3">
+                          <div className="font-bold text-tinta">Pengadaan Bahan Pendukung & Aksesori</div>
+                          <div className="text-[11px] text-teks-sekunder">
+                            Skema Semi-CMT / Full Package: zipper YKK, kancing, benang jahit high-tenacity
+                          </div>
+                        </td>
+                        <td className="py-2.5 px-3 text-center font-mono">1 Lot</td>
+                        <td className="py-2.5 px-3 text-right font-mono">Rp {materialsTotal.toLocaleString("id-ID")}</td>
+                        <td className="py-2.5 px-3 text-right font-mono font-bold">Rp {materialsTotal.toLocaleString("id-ID")}</td>
+                      </tr>
+                    )}
+                    <tr>
+                      <td className="py-2.5 px-3">
+                        <div className="font-bold text-tinta">Jasa Finishing, Steam, QC & Pengemasan</div>
+                        <div className="text-[11px] text-teks-sekunder">
+                          Pemeriksaan 1 produk utuh di terminal QC, masuk Gudang Barang Jadi (`STORED`), tag & polybag
+                        </div>
+                      </td>
+                      <td className="py-2.5 px-3 text-center font-mono">{currentOrder.quantity} pcs</td>
+                      <td className="py-2.5 px-3 text-right font-mono">Rp {currentOrder.finishingRate.toLocaleString("id-ID")}</td>
+                      <td className="py-2.5 px-3 text-right font-mono font-bold">Rp {finishingTotal.toLocaleString("id-ID")}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Explicit PPN 11% Calculations Summary (Decision #4) */}
+              <div className="flex flex-col sm:flex-row justify-between items-start gap-4 pt-2">
+                <div className="text-xs text-teks-sekunder space-y-1 max-w-sm">
+                  <span className="font-bold text-tinta block">Catatan Penagihan & Pajak (PPN 11%):</span>
+                  <p>
+                    1. Faktur ini menampilkan <strong>Jumlah Tanpa PPN (DPP)</strong>, komponen <strong>PPN 11%</strong>, dan <strong>Total Setelah Penambahan PPN 11%</strong> secara transparan.
+                  </p>
+                  <p>
+                    2. Mohon cantumkan nomor invoice <strong>{invoiceNumber}</strong> pada berita transfer bank.
+                  </p>
+                </div>
+
+                <div className="w-full sm:w-80 bg-kabut/60 p-4 rounded border-2 border-celup-indigo space-y-2 text-xs font-mono">
+                  <div className="flex justify-between items-center">
+                    <span className="text-teks-sekunder font-sans font-semibold">Jumlah Tanpa PPN (Subtotal DPP):</span>
+                    <span className="font-bold text-tinta">Rp {subtotalWithoutPpn.toLocaleString("id-ID")}</span>
+                  </div>
+                  <div className="flex justify-between items-center text-status-perbaikan">
+                    <span className="font-sans font-semibold">PPN 11% (Pajak Pertambahan Nilai):</span>
+                    <span className="font-bold">+ Rp {ppnAmount.toLocaleString("id-ID")}</span>
+                  </div>
+                  <div className="border-t-2 border-celup-indigo pt-2 flex justify-between items-center text-sm font-extrabold text-celup-indigo">
+                    <span className="font-sans">TOTAL SETELAH PPN 11%:</span>
+                    <span>Rp {totalWithPpn.toLocaleString("id-ID")}</span>
+                  </div>
+                  {paymentScheme === "TERMIN_50_50" && (
+                    <div className="border-t border-dashed border-garis pt-2 space-y-1 text-[11px]">
+                      <div className="flex justify-between text-status-info font-bold">
+                        <span>Uang Muka (DP 50% Termasuk PPN):</span>
+                        <span>Rp {dpAmount.toLocaleString("id-ID")}</span>
+                      </div>
+                      <div className="flex justify-between text-teks-sekunder">
+                        <span>Sisa Pelunasan (50%):</span>
+                        <span>Rp {remainingAmount.toLocaleString("id-ID")}</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Signature, Save Invoice & Print Actions */}
+              <div className="border-t border-garis pt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div className="text-center sm:text-left text-xs text-teks-sekunder">
+                  <div>Diterbitkan oleh:</div>
+                  <div className="mt-8 font-bold text-celup-indigo border-t border-garis pt-1 inline-block">
+                    Departemen Finance & Payroll Lukla
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap gap-2 print:hidden">
+                  <button
+                    onClick={() => {
+                      const newInv: IssuedInvoiceRecord = {
+                        id: `inv-${Date.now()}`,
+                        invoiceNumber,
+                        orderNumber: currentOrder.orderId,
+                        clientCode: currentOrder.clientCode || "KLIEN_A",
+                        clientName: currentOrder.clientName,
+                        articleName: currentOrder.articleName,
+                        scheme: currentOrder.scheme,
+                        quantity: currentOrder.quantity,
+                        pricePerUnit: Math.round(subtotalWithoutPpn / (currentOrder.quantity || 1)),
+                        subtotalWithoutPpn,
+                        ppnRate: 11,
+                        ppnAmount,
+                        totalWithPpn,
+                        paymentStatus,
+                        fulfillmentMethod,
+                        issuedAt: invoiceDate,
+                      };
+                      saveIssuedInvoice(newInv);
+                      setIssuedInvoices(getIssuedInvoices());
+                      alert(
+                        `Invoice Resmi ${invoiceNumber} untuk ${currentOrder.clientName} BERHASIL diterbitkan & disinkronkan ke Portal Klien B2B!\n\n• Jumlah Tanpa PPN: Rp ${subtotalWithoutPpn.toLocaleString("id-ID")}\n• PPN 11%: Rp ${ppnAmount.toLocaleString("id-ID")}\n• Total Setelah PPN 11%: Rp ${totalWithPpn.toLocaleString("id-ID")}`
+                      );
+                    }}
+                    className="px-4 py-2 bg-status-lolos text-white font-bold text-xs rounded-field hover:bg-status-lolos/90 flex items-center gap-1.5 shadow-hard transition-all active:translate-y-0.5"
+                  >
+                    <CheckCircle2 className="w-4 h-4" />
+                    <span>Terbitkan & Simpan Invoice Resmi (PPN 11%)</span>
+                  </button>
+                  <button
+                    onClick={() => window.print()}
+                    className="px-4 py-2 bg-celup-indigo text-white font-bold text-xs rounded-field hover:bg-celup-indigo/90 flex items-center gap-1.5 shadow-hard transition-all active:translate-y-0.5"
+                  >
+                    <Printer className="w-4 h-4" />
+                    <span>Cetak / Simpan PDF</span>
+                  </button>
                 </div>
               </div>
             </div>
 
-            {/* Itemized Table */}
-            <div className="overflow-x-auto">
-              <table className="w-full text-xs border border-garis">
-                <thead className="bg-kabut border-b border-garis text-celup-indigo font-bold">
+            {/* Tabel Daftar Invoice Resmi Diterbitkan (Menampilkan Tanpa PPN, PPN 11%, & Setelah PPN) */}
+            <div className="bg-white p-5 rounded-work border border-garis shadow-hard space-y-3 print:hidden">
+              <div className="flex items-center justify-between border-b border-garis pb-2">
+                <div>
+                  <h3 className="text-sm font-bold text-celup-indigo">
+                    Daftar Invoice Resmi Diterbitkan (Rincian Tanpa PPN, PPN 11% & Total Setelah PPN)
+                  </h3>
+                  <p className="text-xs text-teks-sekunder">
+                    Tersinkronisasi langsung dengan Portal Klien B2B secara real-time
+                  </p>
+                </div>
+                <span className="text-xs font-mono font-bold text-celup-indigo bg-kabut px-2.5 py-1 rounded">
+                  {issuedInvoices.length} Invoice Aktif
+                </span>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs text-left">
+                  <thead className="bg-kabut text-tinta font-bold border-b border-garis">
+                    <tr>
+                      <th className="py-2.5 px-3">No. Invoice</th>
+                      <th className="py-2.5 px-2">Order & Klien</th>
+                      <th className="py-2.5 px-2 text-right">Jumlah Tanpa PPN (DPP)</th>
+                      <th className="py-2.5 px-2 text-right">PPN 11%</th>
+                      <th className="py-2.5 px-2 text-right">Total Setelah PPN 11%</th>
+                      <th className="py-2.5 px-2 text-center">Serah Terima</th>
+                      <th className="py-2.5 px-3 text-right">Status Bayar</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-garis">
+                    {issuedInvoices.map((inv) => (
+                      <tr key={inv.id} className="hover:bg-lembar">
+                        <td className="py-2.5 px-3 font-mono font-bold text-celup-indigo">{inv.invoiceNumber}</td>
+                        <td className="py-2.5 px-2">
+                          <span className="font-mono font-bold text-tinta block">{inv.orderNumber}</span>
+                          <span className="text-[11px] text-teks-sekunder">{inv.clientName} ({inv.quantity} pcs)</span>
+                        </td>
+                        <td className="py-2.5 px-2 text-right font-mono font-semibold text-tinta">
+                          Rp {inv.subtotalWithoutPpn.toLocaleString("id-ID")}
+                        </td>
+                        <td className="py-2.5 px-2 text-right font-mono font-semibold text-status-perbaikan">
+                          + Rp {inv.ppnAmount.toLocaleString("id-ID")}
+                        </td>
+                        <td className="py-2.5 px-2 text-right font-mono font-extrabold text-celup-indigo">
+                          Rp {inv.totalWithPpn.toLocaleString("id-ID")}
+                        </td>
+                        <td className="py-2.5 px-2 text-center font-mono text-[10px]">
+                          {inv.fulfillmentMethod}
+                        </td>
+                        <td className="py-2.5 px-3 text-right">
+                          <span
+                            className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                              inv.paymentStatus === "PAID"
+                                ? "bg-status-lolos text-white"
+                                : inv.paymentStatus === "DP_PAID"
+                                ? "bg-status-info text-white"
+                                : "bg-status-cacat text-white"
+                            }`}
+                          >
+                            {inv.paymentStatus}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* TAB 3: REVIEW PURCHASE ORDER (PO) BAHAN BAKU OLEH TIM FINANCE (ADOPTED FROM TESTLUKIA-MAIN) */}
+      {activeTab === "PO_REVIEW" && (
+        <div className="space-y-6">
+          <div className="bg-lembar p-5 rounded-work border-2 border-celup-indigo shadow-hard space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-garis pb-3">
+              <div>
+                <h2 className="text-sm font-bold text-celup-indigo">
+                  Persetujuan Purchase Order (PO) Bahan Baku & Komitmen Klien oleh Finance
+                </h2>
+                <p className="text-xs text-teks-sekunder">
+                  Setiap PO pengadaan bahan ke Supplier yang diterbitkan otomatis maupun diajukan Gudang wajib disetujui (`APPROVED`) atau ditolak (`REJECTED`) oleh Finance.
+                </p>
+              </div>
+              <span className="px-2.5 py-1 rounded bg-white border border-garis text-xs font-mono font-bold text-celup-indigo">
+                Menunggu Review: {purchaseOrders.filter((p) => p.status === "PENDING").length} PO
+              </span>
+            </div>
+
+            <div className="overflow-x-auto bg-white rounded border border-garis">
+              <table className="w-full text-xs text-left">
+                <thead className="bg-kabut text-tinta font-bold border-b border-garis">
                   <tr>
-                    <th className="py-2.5 px-3 text-left">Deskripsi Layanan / Item Produksi</th>
-                    <th className="py-2.5 px-3 text-center">Volume</th>
-                    <th className="py-2.5 px-3 text-right">Tarif Satuan</th>
-                    <th className="py-2.5 px-3 text-right">Subtotal</th>
+                    <th className="py-2.5 px-3">Nomor PO</th>
+                    <th className="py-2.5 px-2">Order & Klien</th>
+                    <th className="py-2.5 px-2">Supplier / Tipe</th>
+                    <th className="py-2.5 px-2">Material Bahan</th>
+                    <th className="py-2.5 px-2 text-right">Kuantitas</th>
+                    <th className="py-2.5 px-2 text-center">Status</th>
+                    <th className="py-2.5 px-3 text-right">Keputusan Finance</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-garis">
-                  <tr>
-                    <td className="py-2.5 px-3">
-                      <div className="font-bold text-tinta">Jasa Cutting (Meja Potong Kain)</div>
-                      <div className="text-[11px] text-teks-sekunder">
-                        {currentOrder.articleName} • Presisi pola & bundle komponen
-                      </div>
-                    </td>
-                    <td className="py-2.5 px-3 text-center font-mono">{currentOrder.quantity} pcs</td>
-                    <td className="py-2.5 px-3 text-right font-mono">Rp {currentOrder.cuttingRate.toLocaleString("id-ID")}</td>
-                    <td className="py-2.5 px-3 text-right font-mono font-bold">Rp {cuttingTotal.toLocaleString("id-ID")}</td>
-                  </tr>
-                  <tr>
-                    <td className="py-2.5 px-3">
-                      <div className="font-bold text-tinta">Jasa Jahit & Assembly (Lini ±70 Mesin & FIFO Assembly)</div>
-                      <div className="text-[11px] text-teks-sekunder">
-                        Penggabungan komponen per 30 menit & verifikasi mandor
-                      </div>
-                    </td>
-                    <td className="py-2.5 px-3 text-center font-mono">{currentOrder.quantity} pcs</td>
-                    <td className="py-2.5 px-3 text-right font-mono">Rp {currentOrder.sewingRate.toLocaleString("id-ID")}</td>
-                    <td className="py-2.5 px-3 text-right font-mono font-bold">Rp {sewingTotal.toLocaleString("id-ID")}</td>
-                  </tr>
-                  {materialsTotal > 0 && (
-                    <tr>
-                      <td className="py-2.5 px-3">
-                        <div className="font-bold text-tinta">Pengadaan Bahan Pendukung & Aksesori</div>
-                        <div className="text-[11px] text-teks-sekunder">
-                          Skema Semi-CMT: zipper YKK, kancing, benang jahit high-tenacity
-                        </div>
+                  {purchaseOrders.map((po) => (
+                    <tr key={po.id} className="hover:bg-lembar">
+                      <td className="py-2.5 px-3 font-mono font-bold text-celup-indigo">{po.poNumber}</td>
+                      <td className="py-2.5 px-2">
+                        <span className="font-mono font-bold text-tinta block">{po.orderNumber}</span>
+                        <span className="text-[11px] text-teks-sekunder">{po.clientName}</span>
                       </td>
-                      <td className="py-2.5 px-3 text-center font-mono">1 Lot</td>
-                      <td className="py-2.5 px-3 text-right font-mono">Rp {materialsTotal.toLocaleString("id-ID")}</td>
-                      <td className="py-2.5 px-3 text-right font-mono font-bold">Rp {materialsTotal.toLocaleString("id-ID")}</td>
+                      <td className="py-2.5 px-2">
+                        <span className="font-semibold text-tinta block">{po.supplierOrClient}</span>
+                        <span className="text-[10px] text-teks-sekunder">
+                          {po.docType === "CLIENT_COMMITMENT" ? "Komitmen Bahan CMT" : "PO Beli Supplier"}
+                        </span>
+                      </td>
+                      <td className="py-2.5 px-2 font-medium text-tinta">
+                        <span className="font-mono text-[10px] text-celup-indigo block">{po.rawMaterialSku}</span>
+                        {po.itemName}
+                      </td>
+                      <td className="py-2.5 px-2 text-right font-mono font-bold text-tinta">
+                        {po.quantity} {po.unit}
+                      </td>
+                      <td className="py-2.5 px-2 text-center">
+                        <span
+                          className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                            po.status === "APPROVED"
+                              ? "bg-status-lolos text-white"
+                              : po.status === "REJECTED"
+                              ? "bg-status-cacat text-white"
+                              : "bg-kapur text-celup-indigo border border-celup-indigo"
+                          }`}
+                        >
+                          {po.status}
+                        </span>
+                      </td>
+                      <td className="py-2.5 px-3 text-right">
+                        {po.status === "PENDING" ? (
+                          <div className="flex items-center justify-end gap-1.5">
+                            <button
+                              onClick={() => {
+                                reviewPurchaseOrder(po.id, "APPROVED", "Disetujui oleh Departemen Finance Lukla");
+                                setPurchaseOrders(getPurchaseOrders());
+                                alert(`PO ${po.poNumber} (${po.itemName}) telah DISETUJUI (APPROVED) oleh Tim Finance!`);
+                              }}
+                              className="px-2.5 py-1 bg-status-lolos text-white font-bold rounded text-[11px] hover:bg-status-lolos/90"
+                            >
+                              Setujui PO
+                            </button>
+                            <button
+                              onClick={() => {
+                                reviewPurchaseOrder(po.id, "REJECTED", "Ditolak oleh Departemen Finance Lukla");
+                                setPurchaseOrders(getPurchaseOrders());
+                                alert(`PO ${po.poNumber} telah DITOLAK (REJECTED) oleh Tim Finance.`);
+                              }}
+                              className="px-2.5 py-1 bg-status-cacat text-white font-bold rounded text-[11px] hover:bg-status-cacat/90"
+                            >
+                              Tolak
+                            </button>
+                          </div>
+                        ) : (
+                          <span className="text-[11px] font-mono text-teks-sekunder">Selesai Direview</span>
+                        )}
+                      </td>
                     </tr>
-                  )}
-                  <tr>
-                    <td className="py-2.5 px-3">
-                      <div className="font-bold text-tinta">Jasa Finishing, Steam, QC & Pengemasan</div>
-                      <div className="text-[11px] text-teks-sekunder">
-                        Pemeriksaan 1 produk utuh di terminal QC, tag & polybag
-                      </div>
-                    </td>
-                    <td className="py-2.5 px-3 text-center font-mono">{currentOrder.quantity} pcs</td>
-                    <td className="py-2.5 px-3 text-right font-mono">Rp {currentOrder.finishingRate.toLocaleString("id-ID")}</td>
-                    <td className="py-2.5 px-3 text-right font-mono font-bold">Rp {finishingTotal.toLocaleString("id-ID")}</td>
-                  </tr>
+                  ))}
                 </tbody>
               </table>
-            </div>
-
-            {/* Calculations Summary */}
-            <div className="flex flex-col sm:flex-row justify-between items-start gap-4 pt-2">
-              <div className="text-xs text-teks-sekunder space-y-1 max-w-sm">
-                <span className="font-bold text-tinta block">Catatan Penagihan:</span>
-                <p>
-                  1. Mohon cantumkan nomor invoice <strong>{invoiceNumber}</strong> pada berita transfer bank.
-                </p>
-                <p>
-                  2. Barang jadi siap dikirim setelah status pembayaran mencapai pelunasan penuh sesuai skema yang disepakati.
-                </p>
-              </div>
-
-              <div className="w-full sm:w-64 bg-kabut/60 p-3.5 rounded border border-garis space-y-2 text-xs font-mono">
-                <div className="flex justify-between">
-                  <span className="text-teks-sekunder">Subtotal:</span>
-                  <span className="font-bold">Rp {grandTotal.toLocaleString("id-ID")}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-teks-sekunder">PPN (0% Bebas Maklon):</span>
-                  <span>Rp 0</span>
-                </div>
-                <div className="border-t border-garis pt-2 flex justify-between text-sm font-extrabold text-celup-indigo">
-                  <span>TOTAL TAGIHAN:</span>
-                  <span>Rp {grandTotal.toLocaleString("id-ID")}</span>
-                </div>
-                {paymentScheme === "TERMIN_50_50" && (
-                  <div className="border-t border-dashed border-garis pt-2 space-y-1 text-[11px]">
-                    <div className="flex justify-between text-status-info font-bold">
-                      <span>Uang Muka (DP 50%):</span>
-                      <span>Rp {dpAmount.toLocaleString("id-ID")}</span>
-                    </div>
-                    <div className="flex justify-between text-teks-sekunder">
-                      <span>Sisa Pelunasan:</span>
-                      <span>Rp {remainingAmount.toLocaleString("id-ID")}</span>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Signature & Print Actions */}
-            <div className="border-t border-garis pt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
-              <div className="text-center sm:text-left text-xs text-teks-sekunder">
-                <div>Diterbitkan oleh:</div>
-                <div className="mt-8 font-bold text-celup-indigo border-t border-garis pt-1 inline-block">
-                  Departemen Finance & Payroll Lukla
-                </div>
-              </div>
-
-              <div className="flex gap-2 print:hidden">
-                <button
-                  onClick={() => window.print()}
-                  className="px-4 py-2 bg-celup-indigo text-white font-bold text-xs rounded-field hover:bg-celup-indigo/90 flex items-center gap-1.5 shadow-hard transition-all active:translate-y-0.5"
-                >
-                  <Printer className="w-4 h-4" />
-                  <span>Cetak / Simpan PDF Invoice</span>
-                </button>
-              </div>
             </div>
           </div>
         </div>

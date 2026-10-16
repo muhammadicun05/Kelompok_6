@@ -15,15 +15,15 @@ interface AppHeaderProps {
 
 const ROLES_LIST: { id: Role; label: string; badge: string }[] = [
   { id: "OWNER", label: "Pak Dedi (Owner)", badge: "Executive" },
-  { id: "SAMPLE_TEAM", label: "Mbak Lina (Master Sample)", badge: "Fase 1" },
+  { id: "SAMPLE_TEAM", label: "Mbak Lina (Master Sample)", badge: "Fase 1 & 2" },
   { id: "WAREHOUSE", label: "Kang Asep (Kepala Gudang)", badge: "Fase 3" },
   { id: "PRODUCTION_HEAD_MANDOR", label: "Pak Jajang / Mandor Ujang", badge: "Fase 4 (Mandor)" },
-  { id: "TAILOR_OPERATOR", label: "Siti Rahma (Penjahit #01 - Operator)", badge: "Operator" },
-  { id: "TAILOR_ASSEMBLY", label: "Rina Marlina (Penjahit #02 - Assembly)", badge: "Assembly" },
+  { id: "TAILOR_OPERATOR", label: "Siti Rahma (Penjahit #01)", badge: "Fase 4 (Operator)" },
   { id: "QC_INSPECTOR", label: "Teh Reni (QC Inspector)", badge: "Fase 5" },
   { id: "FINANCE_PAYROLL", label: "Bu Sari (Finance & Payroll)", badge: "Fase 6" },
   { id: "B2B_CLIENT", label: "Pak Hendra (Klien Maklon A)", badge: "Portal B2B" },
 ];
+
 
 export const AppHeader: React.FC<AppHeaderProps> = ({
   currentRole,
